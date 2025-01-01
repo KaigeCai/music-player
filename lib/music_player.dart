@@ -22,6 +22,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
   Duration _totalDuration = Duration.zero;
   bool _isPlaying = false;
   Duration? _draggingPosition; // 用于记录拖动中的位置
+  double _dragOffset = 0.0; // 拖动偏移量
 
   @override
   void initState() {
@@ -109,6 +110,82 @@ class _MusicPlayerState extends State<MusicPlayer> {
     _player.seek(position);
   }
 
+  // 获取上一首歌曲
+  String? _getPreviousSong() {
+    final currentIndex = _audioFiles.indexOf(_currentFile ?? '');
+    if (currentIndex > 0) {
+      return _audioFiles[currentIndex - 1];
+    }
+    return null; // 如果是第一首，则返回 null
+  }
+
+  // 获取下一首歌曲
+  String? _getNextSong() {
+    final currentIndex = _audioFiles.indexOf(_currentFile ?? '');
+    if (currentIndex < _audioFiles.length - 1) {
+      return _audioFiles[currentIndex + 1];
+    }
+    return null; // 如果是最后一首，则返回 null
+  }
+
+  // 切换到上一首歌曲
+  void _playPrevious() {
+    final previous = _getPreviousSong();
+    if (previous != null) {
+      _playAudio(previous);
+    }
+  }
+
+  // 切换到下一首歌曲
+  void _playNext() {
+    final next = _getNextSong();
+    if (next != null) {
+      _playAudio(next);
+    }
+  }
+
+// 构建歌曲显示组件
+  Widget _buildSongTile(String? songPath) {
+    if (songPath == null) {
+      return SizedBox.shrink(); // 如果没有歌曲，返回一个空组件
+    }
+
+    final title = _currentFile?.split('/').last ?? '未知音乐';
+    final albumArtPlaceholder = Container(
+      width: 50,
+      height: 50,
+      color: Colors.grey,
+      child: Icon(Icons.music_note, size: 30, color: Colors.white),
+    );
+    return Row(
+      children: [
+        albumArtPlaceholder,
+        SizedBox(width: 16.0),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 4.0),
+              Text(
+                '歌手 - 专辑名',
+                style: TextStyle(color: Colors.grey, fontSize: 12.0),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+          onPressed: _togglePlayPause,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,76 +247,85 @@ class _MusicPlayerState extends State<MusicPlayer> {
             ),
           ),
           if (_currentFile != null)
-            BottomSheet(
-              onClosing: () {},
-              builder: (context) {
-                final title = _currentFile?.split('/').last ?? '未知音乐';
-                final albumArtPlaceholder = Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.grey,
-                  child: Icon(Icons.music_note, size: 30, color: Colors.white),
-                );
-                return Container(
-                  color: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          albumArtPlaceholder,
-                          SizedBox(width: 16.0),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 4.0),
-                                Text(
-                                  '歌手 - 专辑名',
-                                  style: TextStyle(color: Colors.grey, fontSize: 12.0),
-                                ),
-                              ],
-                            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomSheet(
+                onClosing: () {},
+                builder: (context) {
+                  return Container(
+                    color: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onHorizontalDragUpdate: (details) {
+                            setState(() {
+                              // 根据滑动距离调整当前偏移量
+                              _dragOffset += details.delta.dx;
+                            });
+                          },
+                          onHorizontalDragEnd: (details) {
+                            setState(() {
+                              if (_dragOffset > 10) {
+                                // 滑动右侧超过阈值，切换到上一首
+                                _playPrevious();
+                              } else if (_dragOffset < -10) {
+                                // 滑动左侧超过阈值，切换到下一首
+                                _playNext();
+                              }
+                              // 重置偏移量
+                              _dragOffset = 0.0;
+                            });
+                          },
+                          child: Stack(
+                            children: [
+                              // 显示上一首歌曲
+                              Transform.translate(
+                                offset: Offset(_dragOffset - MediaQuery.of(context).size.width, 0),
+                                child: _buildSongTile(_getPreviousSong()),
+                              ),
+                              // 显示当前歌曲
+                              Transform.translate(
+                                offset: Offset(_dragOffset, 0),
+                                child: _buildSongTile(_currentFile),
+                              ),
+                              // 显示下一首歌曲
+                              Transform.translate(
+                                offset: Offset(_dragOffset + MediaQuery.of(context).size.width, 0),
+                                child: _buildSongTile(_getNextSong()),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                            onPressed: _togglePlayPause,
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _draggingPosition?.inSeconds.toDouble() ?? _currentPosition.inSeconds.toDouble(),
-                        max: _totalDuration.inSeconds.toDouble(),
-                        onChangeStart: (value) {
-                          // 开始拖动时记录拖动状态
-                          _draggingPosition = Duration(seconds: value.toInt());
-                          _player.pause();
-                        },
-                        onChanged: (value) {
-                          // 拖动中仅更新 UI 显示，不触发播放器操作
-                          setState(() {
+                        ),
+                        Slider(
+                          value: _draggingPosition?.inSeconds.toDouble() ?? _currentPosition.inSeconds.toDouble(),
+                          max: _totalDuration.inSeconds.toDouble(),
+                          onChangeStart: (value) {
+                            // 开始拖动时记录拖动状态
                             _draggingPosition = Duration(seconds: value.toInt());
-                          });
-                        },
-                        onChangeEnd: (value) {
-                          // 拖动结束时更新播放器的实际进度
-                          _seekAudio(Duration(seconds: value.toInt()));
-                          setState(() {
-                            _draggingPosition = null; // 结束拖动状态
-                          });
-                          _player.play();
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
+                            _player.pause();
+                          },
+                          onChanged: (value) {
+                            // 拖动中仅更新 UI 显示，不触发播放器操作
+                            setState(() {
+                              _draggingPosition = Duration(seconds: value.toInt());
+                            });
+                          },
+                          onChangeEnd: (value) {
+                            // 拖动结束时更新播放器的实际进度
+                            _seekAudio(Duration(seconds: value.toInt()));
+                            setState(() {
+                              _draggingPosition = null; // 结束拖动状态
+                            });
+                            _player.play();
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
         ],
       ),
