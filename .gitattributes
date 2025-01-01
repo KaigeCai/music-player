@@ -1,0 +1,10 @@
+*.h linguist-language=dart
+*.cpp linguist-language=dart
+*.cc linguist-language=dart
+*.cmake linguist-language=dart
+*.txt linguist-language=dart
+*.swift linguist-language=dart
+*.kt linguist-language=dart
+*.html linguist-language=dart
+*.js linguist-language=dart
+*.css linguist-language=dart
