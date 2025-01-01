@@ -1,0 +1,25 @@
+name: music
+description: "A new Flutter project."
+publish_to: 'none' 
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter  
+  cupertino_icons: ^1.0.8
+  media_kit: ^1.1.11 
+  media_kit_libs_audio: ^1.0.5
+  file_picker: ^8.1.7
+  permission_handler: ^11.3.1
+  shared_preferences: ^2.3.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter  
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
