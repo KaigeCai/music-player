@@ -157,30 +157,40 @@ class _MusicPlayerState extends State<MusicPlayer> {
       color: Colors.grey,
       child: Icon(Icons.music_note, size: 30, color: Colors.white),
     );
-    return Row(
+
+    return Stack(
       children: [
-        albumArtPlaceholder,
-        SizedBox(width: 16.0),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: 4.0),
-              Text(
-                '歌手 - 专辑名',
-                style: TextStyle(color: Colors.grey, fontSize: 12.0),
-              ),
-            ],
-          ),
+        Container(
+          width: double.infinity,
+          height: 50.0,
+          color: Colors.transparent,
         ),
-        IconButton(
-          icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-          onPressed: _togglePlayPause,
+        Row(
+          children: [
+            albumArtPlaceholder,
+            SizedBox(width: 16.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4.0),
+                  Text(
+                    '歌手 - 专辑名',
+                    style: TextStyle(color: Colors.grey, fontSize: 12.0),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+              onPressed: _togglePlayPause,
+            ),
+          ],
         ),
       ],
     );
@@ -267,15 +277,12 @@ class _MusicPlayerState extends State<MusicPlayer> {
                           },
                           onHorizontalDragEnd: (details) {
                             setState(() {
-                              if (_dragOffset > 10) {
-                                // 滑动右侧超过阈值，切换到上一首
+                              if (_dragOffset > 100) {
                                 _playPrevious();
-                              } else if (_dragOffset < -10) {
-                                // 滑动左侧超过阈值，切换到下一首
+                              } else if (_dragOffset < -100) {
                                 _playNext();
                               }
-                              // 重置偏移量
-                              _dragOffset = 0.0;
+                              _dragOffset = 0.0; // 重置偏移量
                             });
                           },
                           child: Stack(
