@@ -3,17 +3,18 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:music/player_detail_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class MusicPlayer extends StatefulWidget {
-  const MusicPlayer({super.key});
+class MusicFilePage extends StatefulWidget {
+  const MusicFilePage({super.key});
 
   @override
-  State<MusicPlayer> createState() => _MusicPlayerState();
+  State<MusicFilePage> createState() => _MusicFilePageState();
 }
 
-class _MusicPlayerState extends State<MusicPlayer> {
+class _MusicFilePageState extends State<MusicFilePage> {
   late final Player _player;
   List<String> _audioFiles = [];
   bool _isScanning = false;
@@ -23,6 +24,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
   bool _isPlaying = false;
   Duration? _draggingPosition; // 用于记录拖动中的位置
   double _dragOffset = 0.0; // 拖动偏移量
+  String songTitle = '';
 
   @override
   void initState() {
@@ -144,13 +146,13 @@ class _MusicPlayerState extends State<MusicPlayer> {
     }
   }
 
-// 构建歌曲显示组件
+  // 构建歌曲显示组件
   Widget _buildSongTile(String? songPath) {
     if (songPath == null) {
       return SizedBox.shrink(); // 如果没有歌曲，返回一个空组件
     }
 
-    final title = _currentFile?.split('/').last ?? '未知音乐';
+    songTitle = _currentFile?.split('/').last ?? '未知音乐';
     final albumArtPlaceholder = Container(
       width: 50,
       height: 50,
@@ -174,7 +176,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    songTitle,
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -238,6 +240,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
                           child: GridTile(
                             child: Container(
                               padding: EdgeInsets.all(8.0),
+                              color: Colors.lightBlue.shade100,
                               child: Center(
                                 child: Text(
                                   file.split('/').last,
@@ -269,20 +272,40 @@ class _MusicPlayerState extends State<MusicPlayer> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PlayerDetailPage(
+                                  songTitle: songTitle,
+                                  artistAlbum: '歌手 - 专辑名', // 替换为实际数据
+                                  coverImage: 'assets/placeholder.png', // 替换为实际封面路径
+                                  isPlaying: _isPlaying,
+                                  onPlayPauseToggle: _togglePlayPause,
+                                  onPrevious: _playPrevious,
+                                  onNext: _playNext,
+                                  currentPosition: _currentPosition,
+                                  totalDuration: _totalDuration,
+                                  onSeek: (position) => _seekAudio(position),
+                                ),
+                              ),
+                            );
+                          },
                           onHorizontalDragUpdate: (details) {
                             setState(() {
-                              // 根据滑动距离调整当前偏移量
-                              _dragOffset += details.delta.dx;
+                              _dragOffset += details.delta.dx; // 根据滑动距离调整当前偏移量
                             });
                           },
                           onHorizontalDragEnd: (details) {
                             setState(() {
-                              if (_dragOffset > 100) {
+                              if (_dragOffset > MediaQuery.of(context).size.width / 3) {
+                                // 偏移量大于屏幕宽度的1/3，切换到上一首
                                 _playPrevious();
-                              } else if (_dragOffset < -100) {
+                              } else if (_dragOffset < -MediaQuery.of(context).size.width / 3) {
+                                // 偏移量小于屏幕宽度的-1/3，切换到下一首
                                 _playNext();
                               }
-                              _dragOffset = 0.0; // 重置偏移量
+                              _dragOffset = 0.0; // 无论是否切换歌曲，重置偏移量
                             });
                           },
                           child: Stack(
