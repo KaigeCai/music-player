@@ -256,7 +256,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                             );
                           } else {
                             cover = SizedBox(
-                              width: 80,
+                              width: 85,
                               height: 80,
                               child: Icon(Icons.music_note, size: 50),
                             ); // 使用默认图标
@@ -283,19 +283,23 @@ class _MusicFilePageState extends State<MusicFilePage> {
                                         ),
                                       ),
                                     ),
-                                    SizedBox(height: 8.0),
                                     Text(
                                       title,
                                       textAlign: TextAlign.center,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        fontSize: 14.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                    SizedBox(height: 4.0),
                                     Text(
                                       "$artist - $album",
                                       textAlign: TextAlign.center,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 12.0, color: Colors.grey),
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
