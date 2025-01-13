@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:audiotags/audiotags.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
@@ -234,22 +235,74 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     itemCount: _audioFiles.length,
                     itemBuilder: (context, index) {
                       final file = _audioFiles[index];
-                      return GestureDetector(
-                        onTap: () => _playAudio(file),
-                        child: GridTile(
-                          child: Container(
-                            padding: EdgeInsets.all(8.0),
-                            color: Colors.lightBlue.shade100,
-                            child: Center(
-                              child: Text(
-                                file.split('/').last,
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12.0),
+                      return FutureBuilder<Tag?>(
+                        future: AudioTags.read(file), // 使用 AudioTags 读取 ID3 标签
+                        builder: (context, snapshot) {
+                          final tag = snapshot.data;
+                          String title = tag?.title ?? '未知标题';
+                          String artist = tag?.trackArtist ?? '未知艺术家';
+                          String album = tag?.album ?? '未知专辑';
+                          // 检查 pictures 是否存在且有数据
+                          Widget cover;
+                          if (tag?.pictures.isNotEmpty == true) {
+                            cover = Image.memory(
+                              tag!.pictures.first.bytes,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => SizedBox(
+                                width: 80,
+                                height: 80,
+                                child: Icon(Icons.music_note, size: 50),
+                              ),
+                            );
+                          } else {
+                            cover = SizedBox(
+                              width: 80,
+                              height: 80,
+                              child: Icon(Icons.music_note, size: 50),
+                            ); // 使用默认图标
+                          }
+                          return GestureDetector(
+                            onTap: () => _playAudio(file),
+                            child: GridTile(
+                              child: Container(
+                                padding: EdgeInsets.all(8.0),
+                                color: Colors.lightBlue.shade100,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(8.0),
+                                          color: Colors.grey.shade200,
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(8.0),
+                                          child: cover, // 显示封面
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.0),
+                                    Text(
+                                      title,
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 4.0),
+                                    Text(
+                                      "$artist - $album",
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 12.0, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       );
                     },
                   );

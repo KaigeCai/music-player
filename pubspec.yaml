@@ -15,6 +15,7 @@ dependencies:
   file_picker: ^8.1.7
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.4
+  audiotags: ^1.4.3
 
 dev_dependencies:
   flutter_test:
