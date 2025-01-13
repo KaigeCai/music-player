@@ -263,6 +263,16 @@ class _MusicFilePageState extends State<MusicFilePage> {
               child: BottomSheet(
                 onClosing: () {},
                 builder: (context) {
+                  final totalSeconds = _totalDuration.inSeconds;
+                  final hasDuration = totalSeconds > 0;
+                  final maxDuration = hasDuration ? totalSeconds.toDouble() : 1.0;
+
+                  final dragPos = _draggingPosition?.inSeconds.toDouble();
+                  final currentPos = _currentPosition.inSeconds.toDouble();
+                  final rawValue = dragPos ?? currentPos;
+
+                  final currentValue = rawValue.clamp(0.0, maxDuration);
+
                   return Container(
                     color: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -327,29 +337,26 @@ class _MusicFilePageState extends State<MusicFilePage> {
                           ),
                         ),
                         Slider(
-                          value: _draggingPosition?.inSeconds.toDouble() ?? _currentPosition.inSeconds.toDouble(),
+                          value: currentValue,
                           activeColor: Colors.blue,
-                          max: _totalDuration.inSeconds.toDouble(),
+                          max: maxDuration,
                           onChangeStart: (value) {
-                            // 开始拖动时记录拖动状态
                             _draggingPosition = Duration(seconds: value.toInt());
                             _player.pause();
                           },
                           onChanged: (value) {
-                            // 拖动中仅更新 UI 显示，不触发播放器操作
                             setState(() {
                               _draggingPosition = Duration(seconds: value.toInt());
                             });
                           },
                           onChangeEnd: (value) {
-                            // 拖动结束时更新播放器的实际进度
                             _seekAudio(Duration(seconds: value.toInt()));
                             setState(() {
-                              _draggingPosition = null; // 结束拖动状态
+                              _draggingPosition = null;
                             });
                             _player.play();
                           },
-                        ),
+                        )
                       ],
                     ),
                   );
