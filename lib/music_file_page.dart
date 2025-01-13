@@ -212,52 +212,50 @@ class _MusicFilePageState extends State<MusicFilePage> {
       ),
       body: Stack(
         children: [
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                if (_isScanning) {
-                  return Center(child: CircularProgressIndicator());
-                }
+          Builder(
+            builder: (context) {
+              if (_isScanning) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-                if (_audioFiles.isEmpty) {
-                  return Center(child: Text('未找到音频文件，请选择一个文件夹。'));
-                }
+              if (_audioFiles.isEmpty) {
+                return Center(child: Text('未找到音频文件，请选择一个文件夹。'));
+              }
 
-                return OrientationBuilder(
-                  builder: (context, orientation) {
-                    final crossAxisCount = orientation == Orientation.portrait ? 3 : 6;
-                    return GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 4.0,
-                        mainAxisSpacing: 4.0,
-                      ),
-                      itemCount: _audioFiles.length,
-                      itemBuilder: (context, index) {
-                        final file = _audioFiles[index];
-                        return GestureDetector(
-                          onTap: () => _playAudio(file),
-                          child: GridTile(
-                            child: Container(
-                              padding: EdgeInsets.all(8.0),
-                              color: Colors.lightBlue.shade100,
-                              child: Center(
-                                child: Text(
-                                  file.split('/').last,
-                                  textAlign: TextAlign.center,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 12.0),
-                                ),
+              return OrientationBuilder(
+                builder: (context, orientation) {
+                  final crossAxisCount = orientation == Orientation.portrait ? 3 : 6;
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 4.0,
+                      mainAxisSpacing: 4.0,
+                    ),
+                    itemCount: _audioFiles.length,
+                    itemBuilder: (context, index) {
+                      final file = _audioFiles[index];
+                      return GestureDetector(
+                        onTap: () => _playAudio(file),
+                        child: GridTile(
+                          child: Container(
+                            padding: EdgeInsets.all(8.0),
+                            color: Colors.lightBlue.shade100,
+                            child: Center(
+                              child: Text(
+                                file.split('/').last,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12.0),
                               ),
                             ),
                           ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
           ),
           if (_currentFile != null)
             Align(
@@ -330,6 +328,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                         ),
                         Slider(
                           value: _draggingPosition?.inSeconds.toDouble() ?? _currentPosition.inSeconds.toDouble(),
+                          activeColor: Colors.blue,
                           max: _totalDuration.inSeconds.toDouble(),
                           onChangeStart: (value) {
                             // 开始拖动时记录拖动状态

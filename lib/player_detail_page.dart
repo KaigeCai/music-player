@@ -134,6 +134,7 @@ class PlayerDetailPage extends StatelessWidget {
                 Slider(
                   value: currentPosition.inSeconds.toDouble(),
                   max: totalDuration.inSeconds.toDouble(),
+                  activeColor: Colors.blue,
                   onChanged: (value) {
                     onSeek(Duration(seconds: value.toInt()));
                   },
