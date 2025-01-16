@@ -16,6 +16,12 @@ class MusicApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: MusicFilePage(),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        bottomSheetTheme: BottomSheetThemeData(
+          backgroundColor: Colors.white,
+        ),
+      ),
     );
   }
 }
