@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:audiotags/audiotags.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:music/player_detail_page.dart';
+import 'package:music/song.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,8 +27,15 @@ class _MusicFilePageState extends State<MusicFilePage> {
   bool _isPlaying = false;
   Duration? _draggingPosition; // 用于记录拖动中的位置
   double _dragOffset = 0.0; // 拖动偏移量
-  String songTitle = '';
   List<Tag?> _audioTags = []; // 缓存音频标签数据
+  int? _currentFileIndex; // 当前点击的文件索引
+
+  Song song = Song(
+    coverImage: Uint8List(0),
+    title: '',
+    artist: '',
+    album: '',
+  );
 
   @override
   void initState() {
@@ -157,24 +166,25 @@ class _MusicFilePageState extends State<MusicFilePage> {
   }
 
   // 构建歌曲显示组件
-  Widget _buildSongTile({String? songPath}) {
-    if (songPath == null) {
-      return SizedBox.shrink(); // 如果没有歌曲，返回一个空组件
-    }
-
-    songTitle = _currentFile?.split('/').last ?? '未知音乐';
+  Widget _buildSongTile(Song song) {
     final albumArtPlaceholder = ClipRRect(
       borderRadius: BorderRadius.circular(8.0),
       child: Container(
-        width: 50,
-        height: 50,
+        width: 80,
+        height: 80,
         color: Colors.grey,
-        child: Icon(Icons.music_note, size: 30, color: Colors.white),
+        child: song.coverImage != null
+            ? Image.memory(song.coverImage!)
+            : Icon(
+                Icons.music_note,
+                size: 30,
+                color: Colors.white,
+              ),
       ),
     );
 
     return Container(
-      padding: EdgeInsets.only(left: 22.0, right: 8.0),
+      margin: EdgeInsets.only(left: 6.0),
       child: Stack(
         children: [
           Container(
@@ -191,21 +201,21 @@ class _MusicFilePageState extends State<MusicFilePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      songTitle,
+                      song.title!,
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
                       overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 4.0),
                     Text(
-                      '歌手 - 专辑名',
+                      '${song.artist} - ${song.album}',
                       style: TextStyle(color: Colors.grey, fontSize: 12.0),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
                 onPressed: _togglePlayPause,
+                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
               ),
             ],
           ),
@@ -218,106 +228,146 @@ class _MusicFilePageState extends State<MusicFilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              const itemWidth = 100.0;
-              final crossAxisCount = (screenWidth / itemWidth).floor().clamp(1, 10);
+      body: Builder(
+        builder: (context) {
+          final screenWidth = MediaQuery.of(context).size.width;
+          const itemWidth = 100.0;
+          final crossAxisCount = (screenWidth / itemWidth).floor().clamp(1, 10);
 
-              if (_isScanning) {
-                return Center(child: CircularProgressIndicator());
-              }
+          bool isDesktop = !kIsWeb && MediaQuery.of(context).size.width > 600;
 
-              if (_audioFiles.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text('未找到音频文件，请扫描文件夹👇'),
-                      SizedBox(height: 12.0),
-                      FloatingActionButton(
-                        onPressed: _checkAndScanFolder,
-                        backgroundColor: Colors.white,
-                        shape: CircleBorder(),
-                        child: Icon(Icons.folder, color: Colors.black87),
-                      ),
-                    ],
+          if (_isScanning) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (_audioFiles.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('未找到音频文件，请扫描文件夹👇'),
+                  SizedBox(height: 12.0),
+                  FloatingActionButton(
+                    onPressed: _checkAndScanFolder,
+                    backgroundColor: Colors.white,
+                    shape: CircleBorder(),
+                    child: Icon(Icons.folder, color: Colors.black87),
                   ),
-                );
-              }
-              return GridView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 3.0, vertical: 38.0),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  childAspectRatio: 3 / 4,
-                  crossAxisSpacing: 3.0,
-                  mainAxisSpacing: 6.0,
-                ),
-                itemCount: _audioFiles.length,
-                itemBuilder: (context, index) {
-                  final file = _audioFiles[index];
-                  final tag = _audioTags[index];
-                  String title = tag?.title ?? '未知标题';
-                  String artist = tag?.trackArtist ?? '未知艺术家';
-                  String album = tag?.album ?? '未知专辑';
+                ],
+              ),
+            );
+          }
+          return ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            child: GridView.builder(
+              padding: EdgeInsets.only(
+                bottom: 220.0,
+                left: 3.0,
+                right: 4.0,
+                top: isDesktop ? 0.0 : 38.0,
+              ),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: 3 / 4,
+                crossAxisSpacing: 3.0,
+                mainAxisSpacing: 6.0,
+              ),
+              itemCount: _audioFiles.length,
+              itemBuilder: (context, index) {
+                final file = _audioFiles[index];
+                final Tag? tag = _audioTags[index];
+                Widget cover;
 
-                  Widget cover;
-                  if (tag?.pictures.isNotEmpty == true) {
-                    cover = Image.memory(
-                      tag!.pictures.first.bytes,
+                song.title = tag?.title ?? '未知标题';
+                song.artist = tag?.trackArtist ?? '未知艺术家';
+                song.album = tag?.album ?? '未知专辑';
+
+                if (tag != null && tag.pictures.isNotEmpty) {
+                  song.coverImage = tag.pictures.first.bytes;
+                } else {
+                  song.coverImage = null; // 如果没有封面图，设置为 null
+                }
+
+                if (song.coverImage != null) {
+                  cover = AspectRatio(
+                    aspectRatio: 1.0,
+                    child: Image.memory(
+                      song.coverImage!,
                       fit: BoxFit.cover,
-                    );
-                  } else {
-                    cover = Container(
-                      color: Colors.black12,
-                      width: 100.0,
-                      height: 100.0,
-                      child: Icon(
-                        Icons.music_note,
-                        size: 100.0,
-                      ),
-                    ); // 使用默认图标
-                  }
-                  return GestureDetector(
-                    onTap: () => _playAudio(file),
-                    child: SingleChildScrollView(
-                      physics: NeverScrollableScrollPhysics(), // 禁用滚动
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: cover, // 显示封面
-                          ),
-                          Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.bold,
+                      errorBuilder: (context, error, stackTrace) => AspectRatio(
+                        aspectRatio: 1.0,
+                        child: Container(
+                          color: Colors.black12,
+                          child: FittedBox(
+                            fit: BoxFit.contain, // 图标根据容器自适应大小
+                            child: Icon(
+                              Icons.music_note,
+                              color: Colors.black,
                             ),
                           ),
-                          Text(
-                            "$artist - $album",
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   );
-                },
-              );
-            },
-          ),
-        ],
+                } else {
+                  // 使用默认图标
+                  cover = AspectRatio(
+                    aspectRatio: 1.0,
+                    child: Container(
+                      color: Colors.black12,
+                      child: FittedBox(
+                        fit: BoxFit.contain, // 图标根据容器自适应大小
+                        child: Icon(
+                          Icons.music_note,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentFile = file; // 设置当前文件路径
+                      _currentFileIndex = index; // 设置当前文件索引
+                    });
+                    _playAudio(file);
+                  },
+                  child: SingleChildScrollView(
+                    physics: NeverScrollableScrollPhysics(), // 禁用滚动
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: cover, // 显示封面
+                        ),
+                        Text(
+                          song.title!,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "${song.artist} - ${song.album}",
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
       ),
       bottomSheet: Builder(
         builder: (context) {
@@ -331,21 +381,39 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
           final currentValue = rawValue.clamp(0.0, maxDuration);
 
+          if (_currentFile == null || _currentFileIndex == null) {
+            return SizedBox.shrink();
+          }
+
+          final Tag? tag = _audioTags[_currentFileIndex!]; // 根据当前索引获取对应标签
+          final Song song = Song(
+            title: tag?.title ?? '未知标题',
+            artist: tag?.trackArtist ?? '未知艺术家',
+            album: tag?.album ?? '未知专辑',
+            coverImage: (tag?.pictures.isNotEmpty ?? false) ? tag!.pictures.first.bytes : null,
+          );
           return Container(
-            constraints: BoxConstraints(maxWidth: 400.0, maxHeight: 100.0),
+            constraints: BoxConstraints(
+              minWidth: 100.0,
+              minHeight: 100.0,
+              maxWidth: 400.0,
+              maxHeight: 100.0,
+            ),
             decoration: BoxDecoration(
               color: Colors.white, // 背景颜色
-              borderRadius: BorderRadius.circular(22.0), // 圆角
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24.0),
+                topRight: Radius.circular(24.0),
+              ), // 圆角
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.13), // 阴影颜色和透明度
-                  blurRadius: 3.0, // 模糊半径
-                  spreadRadius: 3.0, // 扩散半径
-                  offset: Offset(2, 2), // 阴影偏移
+                  color: Colors.black12, // 阴影颜色和透明度
+                  blurRadius: 1.0, // 模糊半径
+                  spreadRadius: 1.0, // 扩散半径
                 ),
               ],
             ),
-            padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding: EdgeInsets.only(top: 8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -355,9 +423,9 @@ class _MusicFilePageState extends State<MusicFilePage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => PlayerDetailPage(
-                          songTitle: songTitle,
-                          artistAlbum: '歌手 - 专辑名', // 替换为实际数据
-                          coverImage: 'assets/placeholder.png', // 替换为实际封面路径
+                          songTitle: song.title!,
+                          artistAlbum: '${song.artist} - ${song.album}', // 替换为实际数据
+                          coverImage: song.coverImage, // 替换为实际封面路径
                           isPlaying: _isPlaying,
                           onPlayPauseToggle: _togglePlayPause,
                           onPrevious: _playPrevious,
@@ -386,54 +454,41 @@ class _MusicFilePageState extends State<MusicFilePage> {
                       _dragOffset = 0.0; // 无论是否切换歌曲，重置偏移量
                     });
                   },
-                  child: Stack(
-                    children: [
-                      // 显示上一首歌曲
+                  child: // 显示当前歌曲
                       Transform.translate(
-                        offset: Offset(_dragOffset - MediaQuery.of(context).size.width, 0),
-                        child: _buildSongTile(
-                          songPath: _getPreviousSong(),
-                        ),
-                      ),
-                      // 显示当前歌曲
-                      Transform.translate(
-                        offset: Offset(_dragOffset, 0),
-                        child: _buildSongTile(
-                          songPath: _currentFile,
-                        ),
-                      ),
-                      // 显示下一首歌曲
-                      Transform.translate(
-                        offset: Offset(_dragOffset + MediaQuery.of(context).size.width, 0),
-                        child: _buildSongTile(
-                          songPath: _getNextSong(),
-                        ),
-                      ),
-                    ],
+                    offset: Offset(_dragOffset, 0),
+                    child: _buildSongTile(song),
                   ),
                 ),
                 SizedBox(
-                  height: 22.0,
-                  child: Slider(
-                    value: currentValue,
-                    activeColor: Colors.blue,
-                    max: maxDuration,
-                    onChangeStart: (value) {
-                      _draggingPosition = Duration(seconds: value.toInt());
-                      _player.pause();
-                    },
-                    onChanged: (value) {
-                      setState(() {
+                  height: 11.0,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 5.0), // 调整滑块大小
+                      trackHeight: 2.0, // 调整轨道高度
+                      overlayShape: RoundSliderOverlayShape(overlayRadius: 0.0),
+                    ),
+                    child: Slider(
+                      value: currentValue,
+                      activeColor: Colors.blue,
+                      max: maxDuration,
+                      onChangeStart: (value) {
                         _draggingPosition = Duration(seconds: value.toInt());
-                      });
-                    },
-                    onChangeEnd: (value) {
-                      _seekAudio(Duration(seconds: value.toInt()));
-                      setState(() {
-                        _draggingPosition = null;
-                      });
-                      _player.play();
-                    },
+                        _player.pause();
+                      },
+                      onChanged: (value) {
+                        setState(() {
+                          _draggingPosition = Duration(seconds: value.toInt());
+                        });
+                      },
+                      onChangeEnd: (value) {
+                        _seekAudio(Duration(seconds: value.toInt()));
+                        setState(() {
+                          _draggingPosition = null;
+                        });
+                        _player.play();
+                      },
+                    ),
                   ),
                 )
               ],

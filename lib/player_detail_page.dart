@@ -1,9 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 class PlayerDetailPage extends StatelessWidget {
   final String songTitle;
   final String artistAlbum;
-  final String coverImage; // 封面图片的路径（可以是占位符）
+  final Uint8List? coverImage; // 封面图片的路径（可以是占位符）
 
   final bool isPlaying;
   final VoidCallback onPlayPauseToggle;
@@ -37,22 +39,13 @@ class PlayerDetailPage extends StatelessWidget {
       body: Column(
         children: [
           // 歌曲封面
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.rectangle,
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: coverImage.isNotEmpty
-                        ? AssetImage(coverImage)
-                        : AssetImage('assets/placeholder.png'), // 替换为你的占位符
-                    fit: BoxFit.cover,
-                  ),
-                ),
+          AspectRatio(
+            aspectRatio: 1.0,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: Image.memory(
+                coverImage!,
+                fit: BoxFit.cover,
               ),
             ),
           ),
