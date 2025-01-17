@@ -59,7 +59,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
     super.dispose();
   }
 
-  /// 加载上次使用的文件夹路径
+  // 加载上次使用的文件夹路径
   Future<void> _loadLastDirectory() async {
     final prefs = await SharedPreferences.getInstance();
     final directory = prefs.getString('last_directory');
@@ -68,13 +68,13 @@ class _MusicFilePageState extends State<MusicFilePage> {
     }
   }
 
-  /// 保存文件夹路径到本地
+  // 保存文件夹路径到本地
   Future<void> _saveLastDirectory(String directory) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_directory', directory);
   }
 
-  /// 检查权限并扫描文件夹
+  // 检查权限并扫描文件夹
   Future<void> _checkAndScanFolder() async {
     await Permission.manageExternalStorage.request();
     await Permission.storage.request();
@@ -86,7 +86,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
     }
   }
 
-  /// 扫描音频文件
+  // 扫描音频文件
   Future<void> _scanAudioFiles(String directory) async {
     final dir = Directory(directory);
     final files = dir.listSync(recursive: true, followLinks: false);
@@ -113,7 +113,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
     });
   }
 
-  /// 播放音频文件
+  // 播放音频文件
   Future<void> _playAudio(String filePath) async {
     setState(() => _currentFile = filePath);
     await _player.open(Media(filePath));
@@ -167,34 +167,32 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   // 构建歌曲显示组件
   Widget _buildSongTile(Song song) {
-    final albumArtPlaceholder = ClipRRect(
-      borderRadius: BorderRadius.circular(8.0),
-      child: Container(
-        width: 80,
-        height: 80,
-        color: Colors.grey,
-        child: song.coverImage != null
-            ? Image.memory(song.coverImage!)
-            : Icon(
-                Icons.music_note,
-                size: 30,
-                color: Colors.white,
-              ),
-      ),
-    );
-
     return Container(
       margin: EdgeInsets.only(left: 6.0),
       child: Stack(
         children: [
-          Container(
-            width: double.infinity,
-            height: 50.0,
-            color: Colors.transparent,
+          Positioned.fill(
+            child: Container(
+              color: Colors.transparent,
+            ),
           ),
           Row(
             children: [
-              albumArtPlaceholder,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.grey,
+                  child: song.coverImage != null
+                      ? Image.memory(song.coverImage!)
+                      : Icon(
+                          Icons.music_note,
+                          size: 30,
+                          color: Colors.white,
+                        ),
+                ),
+              ),
               SizedBox(width: 16.0),
               Expanded(
                 child: Column(
@@ -234,8 +232,6 @@ class _MusicFilePageState extends State<MusicFilePage> {
           const itemWidth = 100.0;
           final crossAxisCount = (screenWidth / itemWidth).floor().clamp(1, 10);
 
-          bool isDesktop = !kIsWeb && MediaQuery.of(context).size.width > 600;
-
           if (_isScanning) {
             return Center(child: CircularProgressIndicator());
           }
@@ -264,8 +260,8 @@ class _MusicFilePageState extends State<MusicFilePage> {
               padding: EdgeInsets.only(
                 bottom: 220.0,
                 left: 3.0,
-                right: 4.0,
-                top: isDesktop ? 0.0 : 38.0,
+                right: 3.0,
+                top: 3.0,
               ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
@@ -286,7 +282,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                 if (tag != null && tag.pictures.isNotEmpty) {
                   song.coverImage = tag.pictures.first.bytes;
                 } else {
-                  song.coverImage = null; // 如果没有封面图，设置为 null
+                  song.coverImage = null;
                 }
 
                 if (song.coverImage != null) {

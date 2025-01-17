@@ -1,6 +1,6 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:music/lyrics_widget.dart';
 
 class PlayerDetailPage extends StatelessWidget {
   final String songTitle;
@@ -32,124 +32,230 @@ class PlayerDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isDesktop = !kIsWeb && MediaQuery.of(context).size.width > 600;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('播放详情'),
-      ),
-      body: Column(
-        children: [
-          // 歌曲封面
-          AspectRatio(
-            aspectRatio: 1.0,
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: Image.memory(
-                coverImage!,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // 歌曲标题
-          Text(
-            songTitle,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-
-          // 歌手-专辑
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              artistAlbum,
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          // 功能按钮
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.favorite_border),
-                  onPressed: () {
-                    // 收藏按钮逻辑
-                  },
-                ),
-                SizedBox(width: 16),
-                IconButton(
-                  icon: Icon(Icons.lyrics),
-                  onPressed: () {
-                    // 歌词按钮逻辑
-                  },
-                ),
-                SizedBox(width: 16),
-                IconButton(
-                  icon: Icon(Icons.more_horiz),
-                  onPressed: () {
-                    // 更多按钮逻辑
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // 播放控制按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: Builder(builder: (context) {
+        if (isDesktop) {
+          return Row(
             children: [
-              IconButton(
-                icon: Icon(Icons.skip_previous, size: 36),
-                onPressed: onPrevious,
-              ),
-              IconButton(
-                icon: Icon(
-                  isPlaying ? Icons.pause_circle : Icons.play_circle,
-                  size: 64,
+              // 歌曲封面
+              AspectRatio(
+                aspectRatio: 1.0,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: Image.memory(
+                    coverImage!,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                onPressed: onPlayPauseToggle,
               ),
-              IconButton(
-                icon: Icon(Icons.skip_next, size: 36),
-                onPressed: onNext,
-              ),
-            ],
-          ),
-
-          // 进度条
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Column(
-              children: [
-                Slider(
-                  value: currentPosition.inSeconds.toDouble(),
-                  max: totalDuration.inSeconds.toDouble(),
-                  activeColor: Colors.blue,
-                  onChanged: (value) {
-                    onSeek(Duration(seconds: value.toInt()));
-                  },
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // 歌曲标题
                     Text(
-                      _formatDuration(currentPosition),
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      songTitle,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
                     ),
+
+                    // 歌手-专辑
                     Text(
-                      _formatDuration(totalDuration),
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      artistAlbum,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    // 功能按钮
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.favorite_border),
+                          onPressed: () {
+                            // 收藏按钮逻辑
+                          },
+                        ),
+                        SizedBox(width: 16.0),
+                        IconButton(
+                          icon: Icon(Icons.lyrics_outlined),
+                          onPressed: () {
+                            // 歌词按钮逻辑
+                          },
+                        ),
+                        SizedBox(width: 16.0),
+                        IconButton(
+                          icon: Icon(Icons.more_vert_rounded),
+                          onPressed: () {
+                            // 更多按钮逻辑
+                          },
+                        ),
+                      ],
+                    ),
+                    LyricsWidget(),
+                    // 播放控制按钮
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.skip_previous, size: 36),
+                          onPressed: onPrevious,
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isPlaying ? Icons.pause_circle : Icons.play_circle,
+                            size: 64,
+                          ),
+                          onPressed: onPlayPauseToggle,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.skip_next, size: 36),
+                          onPressed: onNext,
+                        ),
+                      ],
+                    ),
+
+                    // 进度条
+                    Column(
+                      children: [
+                        Slider(
+                          value: currentPosition.inSeconds.toDouble(),
+                          max: totalDuration.inSeconds.toDouble(),
+                          activeColor: Colors.blue,
+                          onChanged: (value) {
+                            onSeek(Duration(seconds: value.toInt()));
+                          },
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDuration(currentPosition),
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            Text(
+                              _formatDuration(totalDuration),
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          );
+        }
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // 歌曲封面
+              AspectRatio(
+                aspectRatio: 1.0,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: Image.memory(
+                    coverImage!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+              // 歌曲标题
+              Text(
+                songTitle,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+
+              // 歌手-专辑
+              Text(
+                artistAlbum,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+
+              // 功能按钮
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.favorite_border),
+                    onPressed: () {
+                      // 收藏按钮逻辑
+                    },
+                  ),
+                  SizedBox(width: 16.0),
+                  IconButton(
+                    icon: Icon(Icons.lyrics),
+                    onPressed: () {
+                      // 歌词按钮逻辑
+                    },
+                  ),
+                  SizedBox(width: 16.0),
+                  IconButton(
+                    icon: Icon(Icons.more_horiz),
+                    onPressed: () {
+                      // 更多按钮逻辑
+                    },
+                  ),
+                ],
+              ),
+              LyricsWidget(),
+              // 播放控制按钮
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.skip_previous, size: 36),
+                    onPressed: onPrevious,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isPlaying ? Icons.pause_circle : Icons.play_circle,
+                      size: 64,
+                    ),
+                    onPressed: onPlayPauseToggle,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.skip_next, size: 36),
+                    onPressed: onNext,
+                  ),
+                ],
+              ),
+
+              // 进度条
+              Column(
+                children: [
+                  Slider(
+                    value: currentPosition.inSeconds.toDouble(),
+                    max: totalDuration.inSeconds.toDouble(),
+                    activeColor: Colors.blue,
+                    onChanged: (value) {
+                      onSeek(Duration(seconds: value.toInt()));
+                    },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatDuration(currentPosition),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        _formatDuration(totalDuration),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      }),
     );
   }
 
