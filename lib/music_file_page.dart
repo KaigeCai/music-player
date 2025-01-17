@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:audiotags/audiotags.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:music/player_detail_page.dart';
@@ -171,11 +171,6 @@ class _MusicFilePageState extends State<MusicFilePage> {
       margin: EdgeInsets.only(left: 6.0),
       child: Stack(
         children: [
-          Positioned.fill(
-            child: Container(
-              color: Colors.transparent,
-            ),
-          ),
           Row(
             children: [
               ClipRRect(
@@ -197,6 +192,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       song.title!,
@@ -381,19 +377,20 @@ class _MusicFilePageState extends State<MusicFilePage> {
             return SizedBox.shrink();
           }
 
-          final Tag? tag = _audioTags[_currentFileIndex!]; // 根据当前索引获取对应标签
+          final Tag? tag = _audioTags[_currentFileIndex!];
           final Song song = Song(
             title: tag?.title ?? '未知标题',
             artist: tag?.trackArtist ?? '未知艺术家',
             album: tag?.album ?? '未知专辑',
             coverImage: (tag?.pictures.isNotEmpty ?? false) ? tag!.pictures.first.bytes : null,
           );
+
           return Container(
             constraints: BoxConstraints(
               minWidth: 100.0,
               minHeight: 100.0,
               maxWidth: 400.0,
-              maxHeight: 100.0,
+              maxHeight: 110.0,
             ),
             decoration: BoxDecoration(
               color: Colors.white, // 背景颜色
@@ -409,85 +406,101 @@ class _MusicFilePageState extends State<MusicFilePage> {
                 ),
               ],
             ),
-            padding: EdgeInsets.only(top: 8.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlayerDetailPage(
-                          songTitle: song.title!,
-                          artistAlbum: '${song.artist} - ${song.album}', // 替换为实际数据
-                          coverImage: song.coverImage, // 替换为实际封面路径
-                          isPlaying: _isPlaying,
-                          onPlayPauseToggle: _togglePlayPause,
-                          onPrevious: _playPrevious,
-                          onNext: _playNext,
-                          currentPosition: _currentPosition,
-                          totalDuration: _totalDuration,
-                          onSeek: (position) => _seekAudio(position),
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24.0),
+                topRight: Radius.circular(24.0),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PlayerDetailPage(
+                            songTitle: song.title!,
+                            artistAlbum: '${song.artist} - ${song.album}', // 替换为实际数据
+                            coverImage: song.coverImage, // 替换为实际封面路径
+                            isPlaying: _isPlaying,
+                            onPlayPauseToggle: _togglePlayPause,
+                            onPrevious: _playPrevious,
+                            onNext: _playNext,
+                            currentPosition: _currentPosition,
+                            totalDuration: _totalDuration,
+                            onSeek: (position) => _seekAudio(position),
+                          ),
                         ),
+                      );
+                    },
+                    onHorizontalDragUpdate: (details) {
+                      setState(() {
+                        _dragOffset += details.delta.dx; // 根据滑动距离调整当前偏移量
+                      });
+                    },
+                    onHorizontalDragEnd: (details) {
+                      setState(() {
+                        if (_dragOffset > MediaQuery.of(context).size.width / 3) {
+                          // 偏移量大于屏幕宽度的1/3，切换到上一首
+                          _playPrevious();
+                        } else if (_dragOffset < -MediaQuery.of(context).size.width / 3) {
+                          // 偏移量小于屏幕宽度的-1/3，切换到下一首
+                          _playNext();
+                        }
+                        _dragOffset = 0.0; // 无论是否切换歌曲，重置偏移量
+                      });
+                    },
+                    child: SizedBox(
+                      height: 99.0,
+                      child: PageView.builder(
+                        controller: PageController(initialPage: _currentFileIndex ?? 0),
+                        itemCount: _audioFiles.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentFileIndex = index;
+                            _playAudio(_audioFiles[index]); // 切换歌曲时自动播放
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          return _buildSongTile(song);
+                        },
                       ),
-                    );
-                  },
-                  onHorizontalDragUpdate: (details) {
-                    setState(() {
-                      _dragOffset += details.delta.dx; // 根据滑动距离调整当前偏移量
-                    });
-                  },
-                  onHorizontalDragEnd: (details) {
-                    setState(() {
-                      if (_dragOffset > MediaQuery.of(context).size.width / 3) {
-                        // 偏移量大于屏幕宽度的1/3，切换到上一首
-                        _playPrevious();
-                      } else if (_dragOffset < -MediaQuery.of(context).size.width / 3) {
-                        // 偏移量小于屏幕宽度的-1/3，切换到下一首
-                        _playNext();
-                      }
-                      _dragOffset = 0.0; // 无论是否切换歌曲，重置偏移量
-                    });
-                  },
-                  child: // 显示当前歌曲
-                      Transform.translate(
-                    offset: Offset(_dragOffset, 0),
-                    child: _buildSongTile(song),
-                  ),
-                ),
-                SizedBox(
-                  height: 11.0,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 5.0), // 调整滑块大小
-                      trackHeight: 2.0, // 调整轨道高度
-                      overlayShape: RoundSliderOverlayShape(overlayRadius: 0.0),
                     ),
-                    child: Slider(
-                      value: currentValue,
-                      activeColor: Colors.blue,
-                      max: maxDuration,
-                      onChangeStart: (value) {
-                        _draggingPosition = Duration(seconds: value.toInt());
-                        _player.pause();
-                      },
-                      onChanged: (value) {
-                        setState(() {
+                  ),
+                  SizedBox(
+                    height: 11.0,
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 5.0),
+                        trackHeight: 2.0,
+                        overlayShape: RoundSliderOverlayShape(overlayRadius: 0.0),
+                      ),
+                      child: Slider(
+                        value: currentValue,
+                        activeColor: Colors.blue,
+                        max: maxDuration,
+                        onChangeStart: (value) {
                           _draggingPosition = Duration(seconds: value.toInt());
-                        });
-                      },
-                      onChangeEnd: (value) {
-                        _seekAudio(Duration(seconds: value.toInt()));
-                        setState(() {
-                          _draggingPosition = null;
-                        });
-                        _player.play();
-                      },
+                          _player.pause();
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            _draggingPosition = Duration(seconds: value.toInt());
+                          });
+                        },
+                        onChangeEnd: (value) {
+                          _seekAudio(Duration(seconds: value.toInt()));
+                          setState(() {
+                            _draggingPosition = null;
+                          });
+                          _player.play();
+                        },
+                      ),
                     ),
-                  ),
-                )
-              ],
+                  )
+                ],
+              ),
             ),
           );
         },
