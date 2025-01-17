@@ -29,6 +29,8 @@ class _MusicFilePageState extends State<MusicFilePage> {
   double _dragOffset = 0.0; // 拖动偏移量
   List<Tag?> _audioTags = []; // 缓存音频标签数据
   int? _currentFileIndex; // 当前点击的文件索引
+  PageController? _pageController;
+  bool _isPageControllerInitialized = false; // 是否已初始化
 
   Song song = Song(
     coverImage: Uint8List(0),
@@ -55,6 +57,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   @override
   void dispose() {
+    _pageController!.dispose();
     _player.dispose();
     super.dispose();
   }
@@ -324,35 +327,51 @@ class _MusicFilePageState extends State<MusicFilePage> {
                       _currentFile = file; // 设置当前文件路径
                       _currentFileIndex = index; // 设置当前文件索引
                     });
+                    // 如果 PageController 未初始化，则动态创建
+                    if (!_isPageControllerInitialized) {
+                      _pageController = PageController(initialPage: index);
+                      _isPageControllerInitialized = true;
+                    } else if (_pageController!.hasClients) {
+                      _pageController!.jumpToPage(index); // 如果已经初始化，直接跳转
+                    }
                     _playAudio(file);
                   },
-                  child: SingleChildScrollView(
-                    physics: NeverScrollableScrollPhysics(), // 禁用滚动
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: cover, // 显示封面
-                        ),
-                        Text(
-                          song.title!,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.bold,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: index == _currentFileIndex ? Colors.blue : Colors.transparent,
+                        width: 2.0,
+                      ),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: SingleChildScrollView(
+                      physics: NeverScrollableScrollPhysics(), // 禁用滚动
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: cover, // 显示封面
                           ),
-                        ),
-                        Text(
-                          "${song.artist} - ${song.album}",
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            color: Colors.grey,
+                          Text(
+                            song.title!,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                          Text(
+                            "${song.artist} - ${song.album}",
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -454,11 +473,12 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     child: SizedBox(
                       height: 99.0,
                       child: PageView.builder(
-                        controller: PageController(initialPage: _currentFileIndex ?? 0),
+                        controller: _pageController,
                         itemCount: _audioFiles.length,
                         onPageChanged: (index) {
                           setState(() {
                             _currentFileIndex = index;
+                            _currentFile = _audioFiles[index];
                             _playAudio(_audioFiles[index]); // 切换歌曲时自动播放
                           });
                         },
