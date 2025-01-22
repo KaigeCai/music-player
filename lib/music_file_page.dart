@@ -56,6 +56,11 @@ class _MusicFilePageState extends State<MusicFilePage> {
             _audioTags.add(tag);
           });
         }
+      } else if (event is FileSystemDeleteEvent) {
+        setState(() {
+          _audioFiles.remove(event.path);
+          _audioTags.removeWhere((tag) => _audioFiles.contains(tag.toString()));
+        });
       }
     });
   }
@@ -144,7 +149,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
           final tag = await AudioTags.read(file.path);
           audioTags.add(tag);
         } catch (e) {
-          audioTags.add(null); 
+          audioTags.add(null);
         }
       }
     }
@@ -295,6 +300,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
           return ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
             child: GridView.builder(
+              physics: BouncingScrollPhysics(),
               padding: EdgeInsets.only(
                 bottom: 220.0,
                 left: 3.0,

@@ -17,7 +17,8 @@ dependencies:
   shared_preferences: ^2.3.4
   audiotags: ^1.4.3
   ffmpeg_cli: ^0.3.0
-  
+  window_manager: ^0.4.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter  
