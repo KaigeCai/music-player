@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -39,6 +40,39 @@ class _MusicFilePageState extends State<MusicFilePage> {
     album: '',
   );
 
+  StreamSubscription<FileSystemEvent>? _directorySubscription;
+
+  void _startWatchingDirectory(String directoryPath) {
+    final dir = Directory(directoryPath);
+
+    // 监听文件夹变化
+    _directorySubscription = dir.watch(events: FileSystemEvent.create).listen((event) async {
+      if (event is FileSystemCreateEvent) {
+        final file = File(event.path);
+        if (await _isAudioFile(file)) {
+          final tag = await _loadAudioTag(file.path);
+          setState(() {
+            _audioFiles.add(file.path);
+            _audioTags.add(tag);
+          });
+        }
+      }
+    });
+  }
+
+  Future<bool> _isAudioFile(File file) async {
+    const audioExtensions = ['.mp3', '.wav', '.flac', '.aac'];
+    return audioExtensions.any(file.path.endsWith);
+  }
+
+  Future<Tag?> _loadAudioTag(String filePath) async {
+    try {
+      return await AudioTags.read(filePath);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   void initState() {
     _player = Player();
@@ -59,6 +93,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
   void dispose() {
     _pageController!.dispose();
     _player.dispose();
+    _directorySubscription?.cancel(); // 停止监听
     super.dispose();
   }
 
@@ -77,22 +112,26 @@ class _MusicFilePageState extends State<MusicFilePage> {
     await prefs.setString('last_directory', directory);
   }
 
-  // 检查权限并扫描文件夹
   Future<void> _checkAndScanFolder() async {
     await Permission.manageExternalStorage.request();
     await Permission.storage.request();
     final directory = await FilePicker.platform.getDirectoryPath();
     if (directory != null) {
-      setState(() => _isScanning = true);
+      setState(() {
+        _isScanning = true;
+      });
       await _saveLastDirectory(directory);
-      _scanAudioFiles(directory);
+      _startWatchingDirectory(directory); // 开始监听文件夹变化
+      setState(() {
+        _isScanning = false;
+      });
     }
   }
 
   // 扫描音频文件
   Future<void> _scanAudioFiles(String directory) async {
     final dir = Directory(directory);
-    final files = dir.listSync(recursive: true, followLinks: false);
+    final files = dir.listSync(recursive: false, followLinks: false);
     final audioExtensions = ['.mp3', '.wav', '.flac', '.aac'];
 
     List<String> audioFiles = [];
@@ -105,7 +144,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
           final tag = await AudioTags.read(file.path);
           audioTags.add(tag);
         } catch (e) {
-          audioTags.add(null); // 如果加载失败，填充 null
+          audioTags.add(null); 
         }
       }
     }
