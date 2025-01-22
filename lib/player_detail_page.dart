@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:music/lyrics_widget.dart';
 
 class PlayerDetailPage extends StatefulWidget {
@@ -53,16 +53,28 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: OrientationBuilder(
-        builder: (context, orientation) {
-          if (orientation == Orientation.portrait) {
-            return _buildPortraitLayout(); // 竖屏布局
-          } else {
-            build(context);
-            return _buildLandscapeLayout(); // 横屏布局
-          }
+    return CallbackShortcuts(
+      bindings: {
+        SingleActivator(LogicalKeyboardKey.escape): () {
+          setState(() {
+            Navigator.of(context).pop();
+          });
         },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: OrientationBuilder(
+            builder: (context, orientation) {
+              if (orientation == Orientation.portrait) {
+                return _buildPortraitLayout(); // 竖屏布局
+              } else {
+                build(context);
+                return _buildLandscapeLayout(); // 横屏布局
+              }
+            },
+          ),
+        ),
       ),
     );
   }

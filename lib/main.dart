@@ -10,6 +10,16 @@ void main() async {
   MediaKit.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
+    // 设置窗口默认属性
+    WindowOptions windowOptions = WindowOptions(fullScreen: true);
+
+    // 应用窗口属性
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      // 显示窗口
+      await windowManager.show();
+      // 聚焦窗口
+      await windowManager.focus();
+    });
   }
   runApp(MusicApp());
 }
@@ -19,7 +29,6 @@ class MusicApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    windowManager.setFullScreen(true);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: MusicFilePage(),
