@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:music/widget/lyrics_widget.dart';
 import 'package:music/model/detail.dart';
+import 'package:music/widget/lyrics_widget.dart';
 
 class PlayerDetailPage extends StatefulWidget {
   const PlayerDetailPage({super.key});
@@ -42,261 +42,166 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: OrientationBuilder(
-            builder: (context, orientation) {
-              if (orientation == Orientation.portrait) {
-                return _buildPortraitLayout(args); // 竖屏布局
-              } else {
-                build(context);
-                return _buildLandscapeLayout(args); // 横屏布局
-              }
-            },
-          ),
+          body: _buildResponsiveLayout(args, context),
         ),
       ),
     );
+  }
+
+  Widget _buildResponsiveLayout(Detail args, BuildContext context) {
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+    return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
+      scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
+      child: isPortrait
+          ? Column(
+              children: _buildLayoutContent(args, isPortrait, context),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                AspectRatio(
+                  key: _imageKey,
+                  aspectRatio: 1.0,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Image.memory(
+                      args.coverImage!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width - imageWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: _buildLayoutContent(args, isPortrait, context),
+                  ),
+                ),
+                SizedBox(width: 3.0),
+              ],
+            ),
+    );
+  }
+
+  List<Widget> _buildLayoutContent(
+    Detail args,
+    bool isPortrait,
+    BuildContext context,
+  ) {
+    return [
+      if (isPortrait)
+        AspectRatio(
+          key: _imageKey,
+          aspectRatio: 1.0,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Image.memory(
+              args.coverImage!,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+
+      // Song title
+      Text(
+        args.songTitle,
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      ),
+
+      // Artist-Album
+      Text(
+        args.artistAlbum,
+        style: TextStyle(fontSize: 16, color: Colors.grey),
+        textAlign: TextAlign.center,
+      ),
+
+      // Action buttons
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.favorite_border),
+            onPressed: () {
+              // Favorite button logic
+            },
+          ),
+          SizedBox(width: 16.0),
+          IconButton(
+            icon: Icon(isPortrait ? Icons.lyrics : Icons.lyrics_outlined),
+            onPressed: () {
+              // Lyrics button logic
+            },
+          ),
+          SizedBox(width: 16.0),
+          IconButton(
+            icon: Icon(isPortrait ? Icons.more_horiz : Icons.more_vert_rounded),
+            onPressed: () {
+              // More button logic
+            },
+          ),
+        ],
+      ),
+
+      LyricsWidget(),
+
+      // Playback control buttons
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.skip_previous, size: 36),
+            onPressed: args.onPrevious,
+          ),
+          IconButton(
+            icon: Icon(
+              args.isPlaying ? Icons.pause_circle : Icons.play_circle,
+              size: 64,
+            ),
+            onPressed: args.onPlayPauseToggle,
+          ),
+          IconButton(
+            icon: Icon(Icons.skip_next, size: 36),
+            onPressed: args.onNext,
+          ),
+        ],
+      ),
+
+      // Progress bar
+      Column(
+        children: [
+          Slider(
+            value: args.currentPosition.inSeconds.toDouble(),
+            max: args.totalDuration.inSeconds.toDouble(),
+            activeColor: Colors.blue,
+            onChanged: (value) {
+              args.onSeek(Duration(seconds: value.toInt()));
+            },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _formatDuration(args.currentPosition),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              Text(
+                _formatDuration(args.totalDuration),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ];
   }
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes.toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
-  }
-
-  Widget _buildPortraitLayout(Detail args) {
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          // 歌曲封面
-          AspectRatio(
-            key: _imageKey,
-            aspectRatio: 1.0,
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: Image.memory(
-                args.coverImage!,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // 歌曲标题
-          Text(
-            args.songTitle,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-
-          // 歌手-专辑
-          Text(
-            args.artistAlbum,
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-
-          // 功能按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(Icons.favorite_border),
-                onPressed: () {
-                  // 收藏按钮逻辑
-                },
-              ),
-              SizedBox(width: 16.0),
-              IconButton(
-                icon: Icon(Icons.lyrics),
-                onPressed: () {
-                  // 歌词按钮逻辑
-                },
-              ),
-              SizedBox(width: 16.0),
-              IconButton(
-                icon: Icon(Icons.more_horiz),
-                onPressed: () {
-                  // 更多按钮逻辑
-                },
-              ),
-            ],
-          ),
-          LyricsWidget(),
-          // 播放控制按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(Icons.skip_previous, size: 36),
-                onPressed: args.onPrevious,
-              ),
-              IconButton(
-                icon: Icon(
-                  args.isPlaying ? Icons.pause_circle : Icons.play_circle,
-                  size: 64,
-                ),
-                onPressed: args.onPlayPauseToggle,
-              ),
-              IconButton(
-                icon: Icon(Icons.skip_next, size: 36),
-                onPressed: args.onNext,
-              ),
-            ],
-          ),
-
-          // 进度条
-          Column(
-            children: [
-              Slider(
-                value: args.currentPosition.inSeconds.toDouble(),
-                max: args.totalDuration.inSeconds.toDouble(),
-                activeColor: Colors.blue,
-                onChanged: (value) {
-                  args.onSeek(Duration(seconds: value.toInt()));
-                },
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _formatDuration(args.currentPosition),
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  Text(
-                    _formatDuration(args.totalDuration),
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLandscapeLayout(Detail args) {
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          // 歌曲封面
-          AspectRatio(
-            key: _imageKey,
-            aspectRatio: 1.0,
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: Image.memory(
-                args.coverImage!,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width - imageWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                // 歌曲标题
-                Text(
-                  args.songTitle,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-
-                // 歌手-专辑
-                Text(
-                  args.artistAlbum,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-
-                // 功能按钮
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.favorite_border),
-                      onPressed: () {
-                        // 收藏按钮逻辑
-                      },
-                    ),
-                    SizedBox(width: 16.0),
-                    IconButton(
-                      icon: Icon(Icons.lyrics_outlined),
-                      onPressed: () {
-                        // 歌词按钮逻辑
-                      },
-                    ),
-                    SizedBox(width: 16.0),
-                    IconButton(
-                      icon: Icon(Icons.more_vert_rounded),
-                      onPressed: () {
-                        // 更多按钮逻辑
-                      },
-                    ),
-                  ],
-                ),
-
-                LyricsWidget(),
-
-                // 播放控制按钮
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.skip_previous, size: 36),
-                      onPressed: args.onPrevious,
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        args.isPlaying ? Icons.pause_circle : Icons.play_circle,
-                        size: 64,
-                      ),
-                      onPressed: args.onPlayPauseToggle,
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.skip_next, size: 36),
-                      onPressed: args.onNext,
-                    ),
-                  ],
-                ),
-
-                // 进度条
-                Column(
-                  children: [
-                    Slider(
-                      value: args.currentPosition.inSeconds.toDouble(),
-                      max: args.totalDuration.inSeconds.toDouble(),
-                      activeColor: Colors.blue,
-                      onChanged: (value) {
-                        args.onSeek(Duration(seconds: value.toInt()));
-                      },
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDuration(args.currentPosition),
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        Text(
-                          _formatDuration(args.totalDuration),
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 3.0),
-        ],
-      ),
-    );
   }
 }
