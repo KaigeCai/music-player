@@ -30,6 +30,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Detail;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return CallbackShortcuts(
       bindings: {
@@ -42,47 +43,41 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: _buildResponsiveLayout(args, context),
+          body: SingleChildScrollView(
+            physics: BouncingScrollPhysics(),
+            scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
+            child: isPortrait
+                ? Column(
+                    children: _buildLayoutContent(args, isPortrait, context),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      AspectRatio(
+                        key: _imageKey,
+                        aspectRatio: 1.0,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: Image.memory(
+                            args.coverImage!,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width - imageWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.max,
+                          children: _buildLayoutContent(args, isPortrait, context),
+                        ),
+                      ),
+                      SizedBox(width: 3.0),
+                    ],
+                  ),
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildResponsiveLayout(Detail args, BuildContext context) {
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
-      child: isPortrait
-          ? Column(
-              children: _buildLayoutContent(args, isPortrait, context),
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                AspectRatio(
-                  key: _imageKey,
-                  aspectRatio: 1.0,
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: Image.memory(
-                      args.coverImage!,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width - imageWidth,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: _buildLayoutContent(args, isPortrait, context),
-                  ),
-                ),
-                SizedBox(width: 3.0),
-              ],
-            ),
     );
   }
 
