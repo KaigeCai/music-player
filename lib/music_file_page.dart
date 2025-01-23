@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:music/model/detail.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:audiotags/audiotags.dart';
@@ -7,8 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:music/player_detail_page.dart';
-import 'package:music/song.dart';
+import 'package:music/model/song.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -325,7 +325,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                   itemCount: _audioFiles.length,
                   itemBuilder: (context, index) {
                     Widget cover;
-                    
+
                     final Tag? tag = _audioTags[index];
                     final file = _audioFiles[index];
                     final fileName = p.basenameWithoutExtension(file);
@@ -472,7 +472,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(24.0),
                     topRight: Radius.circular(24.0),
-                  ), // 圆角
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black12, // 阴影颜色和透明度
@@ -491,21 +491,19 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PlayerDetailPage(
-                                songTitle: song.title!,
-                                artistAlbum: '${song.artist} - ${song.album}', // 替换为实际数据
-                                coverImage: song.coverImage, // 替换为实际封面路径
-                                isPlaying: _isPlaying,
-                                onPlayPauseToggle: _togglePlayPause,
-                                onPrevious: _playPrevious,
-                                onNext: _playNext,
-                                currentPosition: _currentPosition,
-                                totalDuration: _totalDuration,
-                                onSeek: (position) => _seekAudio(position),
-                              ),
+                          Navigator.of(context).pushNamed(
+                            '/playerDetail',
+                            arguments: Detail(
+                              songTitle: song.title!,
+                              artistAlbum: '${song.artist} - ${song.album}', // 替换为实际数据
+                              coverImage: song.coverImage, // 替换为实际封面路径
+                              isPlaying: _isPlaying,
+                              onPlayPauseToggle: _togglePlayPause,
+                              onPrevious: _playPrevious,
+                              onNext: _playNext,
+                              currentPosition: _currentPosition,
+                              totalDuration: _totalDuration,
+                              onSeek: (position) => _seekAudio(position),
                             ),
                           );
                         },

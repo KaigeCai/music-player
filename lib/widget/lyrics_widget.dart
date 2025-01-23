@@ -11,7 +11,6 @@ class _LyricsWidgetState extends State<LyricsWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 300.0,
       child: Center(
         child: Text('歌词'),
       ),

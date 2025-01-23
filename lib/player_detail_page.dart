@@ -1,34 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:music/lyrics_widget.dart';
+import 'package:music/widget/lyrics_widget.dart';
+import 'package:music/model/detail.dart';
 
 class PlayerDetailPage extends StatefulWidget {
-  final String songTitle;
-  final String artistAlbum;
-  final Uint8List? coverImage; // 封面图片的路径（可以是占位符）
-
-  final bool isPlaying;
-  final VoidCallback onPlayPauseToggle;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-
-  final Duration currentPosition;
-  final Duration totalDuration;
-  final ValueChanged<Duration> onSeek;
-
-  const PlayerDetailPage({
-    super.key,
-    required this.songTitle,
-    required this.artistAlbum,
-    required this.coverImage,
-    required this.isPlaying,
-    required this.onPlayPauseToggle,
-    required this.onPrevious,
-    required this.onNext,
-    required this.currentPosition,
-    required this.totalDuration,
-    required this.onSeek,
-  });
+  const PlayerDetailPage({super.key});
 
   @override
   State<PlayerDetailPage> createState() => _PlayerDetailPageState();
@@ -53,6 +29,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments as Detail;
+
     return CallbackShortcuts(
       bindings: {
         SingleActivator(LogicalKeyboardKey.escape): () {
@@ -67,10 +45,10 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           body: OrientationBuilder(
             builder: (context, orientation) {
               if (orientation == Orientation.portrait) {
-                return _buildPortraitLayout(); // 竖屏布局
+                return _buildPortraitLayout(args); // 竖屏布局
               } else {
                 build(context);
-                return _buildLandscapeLayout(); // 横屏布局
+                return _buildLandscapeLayout(args); // 横屏布局
               }
             },
           ),
@@ -85,7 +63,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     return '$minutes:$seconds';
   }
 
-  Widget _buildPortraitLayout() {
+  Widget _buildPortraitLayout(Detail args) {
     return SingleChildScrollView(
       physics: BouncingScrollPhysics(),
       child: Column(
@@ -97,7 +75,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
             child: FittedBox(
               fit: BoxFit.contain,
               child: Image.memory(
-                widget.coverImage!,
+                args.coverImage!,
                 fit: BoxFit.cover,
               ),
             ),
@@ -105,14 +83,14 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
           // 歌曲标题
           Text(
-            widget.songTitle,
+            args.songTitle,
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
 
           // 歌手-专辑
           Text(
-            widget.artistAlbum,
+            args.artistAlbum,
             style: TextStyle(fontSize: 16, color: Colors.grey),
             textAlign: TextAlign.center,
           ),
@@ -150,18 +128,18 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
             children: [
               IconButton(
                 icon: Icon(Icons.skip_previous, size: 36),
-                onPressed: widget.onPrevious,
+                onPressed: args.onPrevious,
               ),
               IconButton(
                 icon: Icon(
-                  widget.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                  args.isPlaying ? Icons.pause_circle : Icons.play_circle,
                   size: 64,
                 ),
-                onPressed: widget.onPlayPauseToggle,
+                onPressed: args.onPlayPauseToggle,
               ),
               IconButton(
                 icon: Icon(Icons.skip_next, size: 36),
-                onPressed: widget.onNext,
+                onPressed: args.onNext,
               ),
             ],
           ),
@@ -170,22 +148,22 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           Column(
             children: [
               Slider(
-                value: widget.currentPosition.inSeconds.toDouble(),
-                max: widget.totalDuration.inSeconds.toDouble(),
+                value: args.currentPosition.inSeconds.toDouble(),
+                max: args.totalDuration.inSeconds.toDouble(),
                 activeColor: Colors.blue,
                 onChanged: (value) {
-                  widget.onSeek(Duration(seconds: value.toInt()));
+                  args.onSeek(Duration(seconds: value.toInt()));
                 },
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _formatDuration(widget.currentPosition),
+                    _formatDuration(args.currentPosition),
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
-                    _formatDuration(widget.totalDuration),
+                    _formatDuration(args.totalDuration),
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -197,7 +175,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildLandscapeLayout() {
+  Widget _buildLandscapeLayout(Detail args) {
     return SingleChildScrollView(
       physics: BouncingScrollPhysics(),
       scrollDirection: Axis.horizontal,
@@ -211,7 +189,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
             child: FittedBox(
               fit: BoxFit.contain,
               child: Image.memory(
-                widget.coverImage!,
+                args.coverImage!,
                 fit: BoxFit.cover,
               ),
             ),
@@ -224,14 +202,14 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
               children: [
                 // 歌曲标题
                 Text(
-                  widget.songTitle,
+                  args.songTitle,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
 
                 // 歌手-专辑
                 Text(
-                  widget.artistAlbum,
+                  args.artistAlbum,
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
@@ -262,25 +240,27 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
                     ),
                   ],
                 ),
-                // LyricsWidget(),
+
+                LyricsWidget(),
+
                 // 播放控制按钮
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
                       icon: Icon(Icons.skip_previous, size: 36),
-                      onPressed: widget.onPrevious,
+                      onPressed: args.onPrevious,
                     ),
                     IconButton(
                       icon: Icon(
-                        widget.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                        args.isPlaying ? Icons.pause_circle : Icons.play_circle,
                         size: 64,
                       ),
-                      onPressed: widget.onPlayPauseToggle,
+                      onPressed: args.onPlayPauseToggle,
                     ),
                     IconButton(
                       icon: Icon(Icons.skip_next, size: 36),
-                      onPressed: widget.onNext,
+                      onPressed: args.onNext,
                     ),
                   ],
                 ),
@@ -289,22 +269,22 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
                 Column(
                   children: [
                     Slider(
-                      value: widget.currentPosition.inSeconds.toDouble(),
-                      max: widget.totalDuration.inSeconds.toDouble(),
+                      value: args.currentPosition.inSeconds.toDouble(),
+                      max: args.totalDuration.inSeconds.toDouble(),
                       activeColor: Colors.blue,
                       onChanged: (value) {
-                        widget.onSeek(Duration(seconds: value.toInt()));
+                        args.onSeek(Duration(seconds: value.toInt()));
                       },
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _formatDuration(widget.currentPosition),
+                          _formatDuration(args.currentPosition),
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         Text(
-                          _formatDuration(widget.totalDuration),
+                          _formatDuration(args.totalDuration),
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
