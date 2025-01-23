@@ -7,17 +7,17 @@ class PlayerDetailPage extends StatefulWidget {
   const PlayerDetailPage({super.key});
 
   @override
-  State<PlayerDetailPage> createState() => _PlayerDetailPageState();
+  State<PlayerDetailPage> createState() => PlayerDetailPageState();
 }
 
-class _PlayerDetailPageState extends State<PlayerDetailPage> {
-  final GlobalKey _imageKey = GlobalKey();
+class PlayerDetailPageState extends State<PlayerDetailPage> {
+  final GlobalKey imageKey = GlobalKey();
   double imageWidth = 0;
 
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? renderBox = _imageKey.currentContext?.findRenderObject() as RenderBox?;
+      final renderBox = imageKey.currentContext?.findRenderObject() as RenderBox?;
       if (renderBox != null) {
         setState(() {
           imageWidth = renderBox.size.width;
@@ -28,16 +28,14 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {    
     final args = ModalRoute.of(context)?.settings.arguments as Detail;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return CallbackShortcuts(
       bindings: {
         SingleActivator(LogicalKeyboardKey.escape): () {
-          setState(() {
-            Navigator.of(context).pop();
-          });
+          Navigator.of(context).pop();
         },
       },
       child: Focus(
@@ -47,128 +45,197 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
             physics: BouncingScrollPhysics(),
             scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
             child: isPortrait
-                ? Column(
-                    children: _buildLayoutContent(args, isPortrait, context),
+                ? PortraitLayout(
+                    args: args,
+                    imageKey: imageKey,
                   )
-                : Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      AspectRatio(
-                        key: _imageKey,
-                        aspectRatio: 1.0,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: Image.memory(
-                            args.coverImage!,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width - imageWidth,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.max,
-                          children: _buildLayoutContent(args, isPortrait, context),
-                        ),
-                      ),
-                      SizedBox(width: 3.0),
-                    ],
+                : LandscapeLayout(
+                    args: args,
+                    imageWidth: imageWidth,
+                    imageKey: imageKey,
                   ),
           ),
         ),
       ),
     );
   }
+}
 
-  List<Widget> _buildLayoutContent(
-    Detail args,
-    bool isPortrait,
-    BuildContext context,
-  ) {
-    return [
-      if (isPortrait)
-        AspectRatio(
-          key: _imageKey,
-          aspectRatio: 1.0,
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: Image.memory(
-              args.coverImage!,
-              fit: BoxFit.cover,
-            ),
+class PortraitLayout extends StatelessWidget {
+  final Detail args;
+  final GlobalKey imageKey;
+
+  const PortraitLayout({super.key, required this.args, required this.imageKey});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height + 1.0,
+      child: Column(
+        children: [
+          AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
+          SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
+          ActionButtons(),
+          LyricsWidget(),
+          PlaybackControls(args: args),
+          PlaybackProgress(args: args),
+        ],
+      ),
+    );
+  }
+}
+
+class LandscapeLayout extends StatelessWidget {
+  final Detail args;
+  final double imageWidth;
+  final GlobalKey imageKey;
+
+  const LandscapeLayout({
+    super.key,
+    required this.args,
+    required this.imageWidth,
+    required this.imageKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
+        SizedBox(
+          width: MediaQuery.of(context).size.width - imageWidth + 1.0,
+          height: MediaQuery.of(context).size.height,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
+              ActionButtons(),
+              LyricsWidget(),
+              PlaybackControls(args: args),
+              PlaybackProgress(args: args),
+            ],
           ),
         ),
+      ],
+    );
+  }
+}
 
-      // Song title
-      Text(
-        args.songTitle,
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
+class AlbumArt extends StatelessWidget {
+  final GlobalKey imageKey;
+  final Uint8List? coverImage;
+
+  const AlbumArt({
+    super.key,
+    required this.imageKey,
+    required this.coverImage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      key: imageKey,
+      aspectRatio: 1.0,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: Image.memory(
+          coverImage!,
+          fit: BoxFit.cover,
+        ),
       ),
+    );
+  }
+}
 
-      // Artist-Album
-      Text(
-        args.artistAlbum,
-        style: TextStyle(fontSize: 16, color: Colors.grey),
-        textAlign: TextAlign.center,
-      ),
+class SongInfo extends StatelessWidget {
+  final String songTitle;
+  final String artistAlbum;
 
-      // Action buttons
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: Icon(Icons.favorite_border),
-            onPressed: () {
-              // Favorite button logic
-            },
-          ),
-          SizedBox(width: 16.0),
-          IconButton(
-            icon: Icon(isPortrait ? Icons.lyrics : Icons.lyrics_outlined),
-            onPressed: () {
-              // Lyrics button logic
-            },
-          ),
-          SizedBox(width: 16.0),
-          IconButton(
-            icon: Icon(isPortrait ? Icons.more_horiz : Icons.more_vert_rounded),
-            onPressed: () {
-              // More button logic
-            },
-          ),
-        ],
-      ),
+  const SongInfo({
+    super.key,
+    required this.songTitle,
+    required this.artistAlbum,
+  });
 
-      LyricsWidget(),
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          songTitle,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          artistAlbum,
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
 
-      // Playback control buttons
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: Icon(Icons.skip_previous, size: 36),
-            onPressed: args.onPrevious,
-          ),
-          IconButton(
-            icon: Icon(
-              args.isPlaying ? Icons.pause_circle : Icons.play_circle,
-              size: 64,
-            ),
-            onPressed: args.onPlayPauseToggle,
-          ),
-          IconButton(
-            icon: Icon(Icons.skip_next, size: 36),
-            onPressed: args.onNext,
-          ),
-        ],
-      ),
+class ActionButtons extends StatelessWidget {
+  const ActionButtons({super.key});
 
-      // Progress bar
-      Column(
-        children: [
-          Slider(
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(icon: Icon(Icons.favorite_border), onPressed: () {}),
+        SizedBox(width: 16),
+        IconButton(icon: Icon(Icons.lyrics), onPressed: () {}),
+        SizedBox(width: 16),
+        IconButton(icon: Icon(Icons.more_horiz), onPressed: () {}),
+      ],
+    );
+  }
+}
+
+class PlaybackControls extends StatelessWidget {
+  final Detail args;
+
+  const PlaybackControls({super.key, required this.args});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(Icons.skip_previous, size: 36),
+          onPressed: args.onPrevious,
+        ),
+        IconButton(
+          icon: Icon(
+            args.isPlaying ? Icons.pause_circle : Icons.play_circle,
+            size: 64,
+          ),
+          onPressed: args.onPlayPauseToggle,
+        ),
+        IconButton(
+          icon: Icon(Icons.skip_next, size: 36),
+          onPressed: args.onNext,
+        ),
+      ],
+    );
+  }
+}
+
+class PlaybackProgress extends StatelessWidget {
+  final Detail args;
+
+  const PlaybackProgress({super.key, required this.args});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 18.0,
+          child: Slider(
             value: args.currentPosition.inSeconds.toDouble(),
             max: args.totalDuration.inSeconds.toDouble(),
             activeColor: Colors.blue,
@@ -176,25 +243,28 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
               args.onSeek(Duration(seconds: value.toInt()));
             },
           ),
-          Row(
+        ),
+        Container(
+          margin: EdgeInsets.symmetric(horizontal: 24.0),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _formatDuration(args.currentPosition),
+                formatDuration(args.currentPosition),
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
-                _formatDuration(args.totalDuration),
+                formatDuration(args.totalDuration),
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
-        ],
-      ),
-    ];
+        ),
+      ],
+    );
   }
 
-  String _formatDuration(Duration duration) {
+  String formatDuration(Duration duration) {
     final minutes = duration.inMinutes.toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';

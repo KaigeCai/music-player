@@ -10,7 +10,7 @@ class LyricsWidget extends StatefulWidget {
 class _LyricsWidgetState extends State<LyricsWidget> {
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Expanded(
       child: Center(
         child: Text('歌词'),
       ),

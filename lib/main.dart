@@ -9,7 +9,7 @@ import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
   MediaKit.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
@@ -34,6 +34,7 @@ class MusicApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [GlobalNavObserver()],
       initialRoute: '/',
       routes: {
         '/': (context) => MusicFilePage(),
@@ -46,5 +47,21 @@ class MusicApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class GlobalNavObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    // 每次进入新页面时隐藏状态栏
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    // 返回上一页面时隐藏状态栏
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
   }
 }
