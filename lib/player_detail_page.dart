@@ -132,19 +132,32 @@ class AlbumArt extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      key: imageKey,
-      aspectRatio: 1.0,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: Image.memory(
-          coverImage!,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => coverImage != null
+      ? AspectRatio(
+          key: imageKey,
+          aspectRatio: 1.0,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Image.memory(
+              coverImage!,
+              fit: BoxFit.cover,
+            ),
+          ),
+        )
+      : AspectRatio(
+          aspectRatio: 1.0,
+          key: imageKey,
+          child: Container(
+            color: Colors.black12,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: Icon(
+                Icons.music_note,
+                color: Colors.black,
+              ),
+            ),
+          ),
+        );
 }
 
 class SongInfo extends StatelessWidget {
