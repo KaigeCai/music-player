@@ -495,8 +495,8 @@ class _MusicFilePageState extends State<MusicFilePage> {
                             '/playerDetail',
                             arguments: Detail(
                               songTitle: song.title!,
-                              artistAlbum: '${song.artist} - ${song.album}', // 替换为实际数据
-                              coverImage: song.coverImage, // 替换为实际封面路径
+                              artistAlbum: '${song.artist} - ${song.album}',
+                              coverImage: song.coverImage,
                               isPlaying: _isPlaying,
                               onPlayPauseToggle: _togglePlayPause,
                               onPrevious: _playPrevious,

@@ -28,7 +28,7 @@ class PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) {    
+  Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Detail;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
@@ -234,7 +234,7 @@ class PlaybackProgress extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: 18.0,
+          height: 8.0,
           child: Slider(
             value: args.currentPosition.inSeconds.toDouble(),
             max: args.totalDuration.inSeconds.toDouble(),
@@ -245,7 +245,7 @@ class PlaybackProgress extends StatelessWidget {
           ),
         ),
         Container(
-          margin: EdgeInsets.symmetric(horizontal: 24.0),
+          margin: EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
