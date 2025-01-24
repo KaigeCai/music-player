@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 class PlayerProvider with ChangeNotifier {
   // 播放信息
+  Uint8List? _coverImage;
   String _songTitle = '';
   String _artistAlbum = '';
-  Uint8List? _coverImage;
 
   // 播放状态
   bool _isPlaying = false;

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:path/path.dart' as p;
 
 import 'package:audiotags/audiotags.dart';
 import 'package:file_picker/file_picker.dart';
@@ -8,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:music/model/song.dart';
+import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -205,6 +205,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
     if (previous != null) {
       _playAudio(previous);
     }
+    setState(() {
+      _currentFileIndex = _currentFileIndex! - 1;
+      _pageController!.jumpToPage(_currentFileIndex!);
+    });
   }
 
   // 切换到下一首歌曲
@@ -213,6 +217,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
     if (next != null) {
       _playAudio(next);
     }
+    setState(() {
+      _currentFileIndex = _currentFileIndex! + 1;
+      _pageController!.jumpToPage(_currentFileIndex!);
+    });
   }
 
   // 构建歌曲显示组件
