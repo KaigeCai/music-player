@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:music/model/detail.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:audiotags/audiotags.dart';
@@ -10,7 +9,10 @@ import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:music/model/song.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'global/player_provider.dart';
 
 class MusicFilePage extends StatefulWidget {
   const MusicFilePage({super.key});
@@ -268,6 +270,8 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: true);
+
     return CallbackShortcuts(
       bindings: {
         SingleActivator(LogicalKeyboardKey.escape): () {
@@ -491,21 +495,19 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          Navigator.of(context).pushNamed(
-                            '/playerDetail',
-                            arguments: Detail(
-                              songTitle: song.title!,
-                              artistAlbum: '${song.artist} - ${song.album}',
-                              coverImage: song.coverImage,
-                              isPlaying: _isPlaying,
-                              onPlayPauseToggle: _togglePlayPause,
-                              onPrevious: _playPrevious,
-                              onNext: _playNext,
-                              currentPosition: _currentPosition,
-                              totalDuration: _totalDuration,
-                              onSeek: (position) => _seekAudio(position),
-                            ),
+                          playerProvider.setSong(
+                            coverImage: song.coverImage,
+                            title: song.title!,
+                            artistAlbum: '${song.artist} - ${song.album}',
+                            isPlaying: _isPlaying,
+                            onPlayPauseToggle: _togglePlayPause,
+                            onPrevious: _playPrevious,
+                            onNext: _playNext,
+                            currentPositon: _currentPosition,
+                            totalDuration: _totalDuration,
+                            onSeek: (position) => _seekAudio(position),
                           );
+                          Navigator.of(context).pushNamed('/playerDetail');
                         },
                         onHorizontalDragUpdate: (details) {
                           setState(() {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:music/model/detail.dart';
+import 'package:music/global/player_provider.dart';
 import 'package:music/widget/lyrics_widget.dart';
+import 'package:provider/provider.dart';
 
 class PlayerDetailPage extends StatefulWidget {
   const PlayerDetailPage({super.key});
@@ -29,7 +30,6 @@ class PlayerDetailPageState extends State<PlayerDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Detail;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return CallbackShortcuts(
@@ -44,16 +44,7 @@ class PlayerDetailPageState extends State<PlayerDetailPage> {
           body: SingleChildScrollView(
             physics: BouncingScrollPhysics(),
             scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
-            child: isPortrait
-                ? PortraitLayout(
-                    args: args,
-                    imageKey: imageKey,
-                  )
-                : LandscapeLayout(
-                    args: args,
-                    imageWidth: imageWidth,
-                    imageKey: imageKey,
-                  ),
+            child: isPortrait ? PortraitLayout(imageKey: imageKey) : LandscapeLayout(imageWidth: imageWidth, imageKey: imageKey),
           ),
         ),
       ),
@@ -62,62 +53,59 @@ class PlayerDetailPageState extends State<PlayerDetailPage> {
 }
 
 class PortraitLayout extends StatelessWidget {
-  final Detail args;
   final GlobalKey imageKey;
 
-  const PortraitLayout({super.key, required this.args, required this.imageKey});
+  const PortraitLayout({super.key, required this.imageKey});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height + 1.0,
-      child: Column(
-        children: [
-          AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
-          SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
-          ActionButtons(),
-          LyricsWidget(),
-          PlaybackControls(args: args),
-          PlaybackProgress(args: args),
-        ],
-      ),
-    );
+    return Consumer<PlayerProvider>(builder: (context, args, child) {
+      return SizedBox(
+        height: MediaQuery.of(context).size.height + 1.0,
+        child: Column(
+          children: [
+            AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
+            SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
+            ActionButtons(),
+            LyricsWidget(),
+            PlaybackControls(),
+            PlaybackProgress(),
+          ],
+        ),
+      );
+    });
   }
 }
 
 class LandscapeLayout extends StatelessWidget {
-  final Detail args;
   final double imageWidth;
   final GlobalKey imageKey;
 
-  const LandscapeLayout({
-    super.key,
-    required this.args,
-    required this.imageWidth,
-    required this.imageKey,
-  });
+  const LandscapeLayout({super.key, required this.imageWidth, required this.imageKey});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
-        SizedBox(
-          width: MediaQuery.of(context).size.width - imageWidth + 1.0,
-          height: MediaQuery.of(context).size.height,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
-              ActionButtons(),
-              LyricsWidget(),
-              PlaybackControls(args: args),
-              PlaybackProgress(args: args),
-            ],
+    return Consumer<PlayerProvider>(builder: (context, args, child) {
+      return Row(
+        children: [
+          AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
+          SizedBox(
+            width: MediaQuery.of(context).size.width - imageWidth + 1.0,
+            height: MediaQuery.of(context).size.height,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
+                ActionButtons(),
+                LyricsWidget(),
+                PlaybackControls(),
+                PlaybackProgress(),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }
 
@@ -125,11 +113,7 @@ class AlbumArt extends StatelessWidget {
   final GlobalKey imageKey;
   final Uint8List? coverImage;
 
-  const AlbumArt({
-    super.key,
-    required this.imageKey,
-    required this.coverImage,
-  });
+  const AlbumArt({super.key, required this.imageKey, required this.coverImage});
 
   @override
   Widget build(BuildContext context) => coverImage != null
@@ -164,11 +148,7 @@ class SongInfo extends StatelessWidget {
   final String songTitle;
   final String artistAlbum;
 
-  const SongInfo({
-    super.key,
-    required this.songTitle,
-    required this.artistAlbum,
-  });
+  const SongInfo({super.key, required this.songTitle, required this.artistAlbum});
 
   @override
   Widget build(BuildContext context) {
@@ -208,73 +188,70 @@ class ActionButtons extends StatelessWidget {
 }
 
 class PlaybackControls extends StatelessWidget {
-  final Detail args;
-
-  const PlaybackControls({super.key, required this.args});
+  const PlaybackControls({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: Icon(Icons.skip_previous, size: 36),
-          onPressed: args.onPrevious,
-        ),
-        IconButton(
-          icon: Icon(
-            args.isPlaying ? Icons.pause_circle : Icons.play_circle,
-            size: 64,
+    return Consumer<PlayerProvider>(builder: (context, args, child) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.skip_previous, size: 36),
+            onPressed: args.onPrevious,
           ),
-          onPressed: args.onPlayPauseToggle,
-        ),
-        IconButton(
-          icon: Icon(Icons.skip_next, size: 36),
-          onPressed: args.onNext,
-        ),
-      ],
-    );
+          IconButton(
+            icon: Icon(
+              args.isPlaying ? Icons.pause_circle : Icons.play_circle,
+              size: 64,
+            ),
+            onPressed: args.onPlayPauseToggle,
+          ),
+          IconButton(
+            icon: Icon(Icons.skip_next, size: 36),
+            onPressed: args.onNext,
+          ),
+        ],
+      );
+    });
   }
 }
 
 class PlaybackProgress extends StatelessWidget {
-  final Detail args;
-
-  const PlaybackProgress({super.key, required this.args});
+  const PlaybackProgress({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 8.0,
-          child: Slider(
+    return Consumer<PlayerProvider>(builder: (context, args, child) {
+      return Column(
+        children: [
+          Slider(
             value: args.currentPosition.inSeconds.toDouble(),
             max: args.totalDuration.inSeconds.toDouble(),
             activeColor: Colors.blue,
             onChanged: (value) {
-              args.onSeek(Duration(seconds: value.toInt()));
+              args.seek(Duration(seconds: value.toInt()));
             },
           ),
-        ),
-        Container(
-          margin: EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formatDuration(args.currentPosition),
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              Text(
-                formatDuration(args.totalDuration),
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formatDuration(args.currentPosition),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                Text(
+                  formatDuration(args.totalDuration),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   String formatDuration(Duration duration) {

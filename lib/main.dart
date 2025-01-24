@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:music/global/player_provider.dart';
 import 'package:music/music_file_page.dart';
 import 'package:music/player_detail_page.dart';
+import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
@@ -24,7 +26,17 @@ void main() async {
       await windowManager.focus();
     });
   }
-  runApp(MusicApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => PlayerProvider(),
+        ),
+      ],
+      child: MusicApp(),
+    ),
+  );
 }
 
 class MusicApp extends StatefulWidget {
