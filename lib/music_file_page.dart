@@ -26,7 +26,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
   List<String> _audioFiles = [];
   bool _isScanning = false;
   String? _currentFile;
-  Duration _currentPosition = Duration.zero;
+  final Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
   bool _isPlaying = false;
   Duration? _draggingPosition; // 用于记录拖动中的位置
@@ -85,13 +85,35 @@ class _MusicFilePageState extends State<MusicFilePage> {
   void initState() {
     _player = Player();
     _player.stream.position.listen((position) {
-      setState(() => _currentPosition = position);
+      if (mounted) {
+        context.read<PlayerProvider>().syncPlaybackState(
+              isPlaying: _isPlaying,
+              currentPosition: position,
+              totalDuration: _totalDuration,
+            );
+      }
     });
+
     _player.stream.duration.listen((duration) {
-      setState(() => _totalDuration = duration);
+      _totalDuration = duration;
+      if (mounted) {
+        context.read<PlayerProvider>().syncPlaybackState(
+              isPlaying: _isPlaying,
+              currentPosition: _currentPosition,
+              totalDuration: duration,
+            );
+      }
     });
+
     _player.stream.playing.listen((playing) {
-      setState(() => _isPlaying = playing);
+      _isPlaying = playing;
+      if (mounted) {
+        context.read<PlayerProvider>().syncPlaybackState(
+              isPlaying: playing,
+              currentPosition: _currentPosition,
+              totalDuration: _totalDuration,
+            );
+      }
     });
     _loadLastDirectory();
     super.initState();
@@ -166,6 +188,26 @@ class _MusicFilePageState extends State<MusicFilePage> {
   // 播放音频文件
   Future<void> _playAudio(String filePath) async {
     setState(() => _currentFile = filePath);
+    final index = _audioFiles.indexOf(filePath);
+    final provider = context.read<PlayerProvider>();
+
+    // 加载新歌曲元数据
+    final tag = await _loadAudioTag(filePath);
+    final fileName = p.basenameWithoutExtension(filePath);
+
+    provider
+      ..setCurrentIndex(index)
+      ..updateSongMetadata(
+        title: tag?.title ?? fileName,
+        artistAlbum: '${tag?.trackArtist ?? "未知艺术家"} - ${tag?.album ?? "未知专辑"}',
+        coverImage: tag?.pictures.isNotEmpty ?? false ? tag!.pictures.first.bytes : null,
+      )
+      ..syncPlaybackState(
+        isPlaying: true, // 新歌曲自动播放
+        currentPosition: Duration.zero,
+        totalDuration: _totalDuration,
+      );
+
     await _player.open(Media(filePath));
   }
 
@@ -175,6 +217,11 @@ class _MusicFilePageState extends State<MusicFilePage> {
     } else {
       _player.play();
     }
+    context.read<PlayerProvider>().syncPlaybackState(
+          isPlaying: !_isPlaying,
+          currentPosition: _currentPosition,
+          totalDuration: _totalDuration,
+        );
   }
 
   void _seekAudio(Duration position) {
@@ -511,7 +558,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                             onPlayPauseToggle: _togglePlayPause,
                             onPrevious: _playPrevious,
                             onNext: _playNext,
-                            currentPositon: _currentPosition,
+                            currentPosition: _currentPosition,
                             totalDuration: _totalDuration,
                             onSeek: (position) => _seekAudio(position),
                           );

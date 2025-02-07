@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 
 class PlayerProvider with ChangeNotifier {
+  int? _currentIndex;
   // 播放信息
   Uint8List? _coverImage;
   String _songTitle = '';
@@ -25,6 +26,7 @@ class PlayerProvider with ChangeNotifier {
   bool get isPlaying => _isPlaying;
   Duration get currentPosition => _currentPosition;
   Duration get totalDuration => _totalDuration;
+  int? get currentIndex => _currentIndex;
 
   // 回调函数暴露为公共接口
   VoidCallback get onPlayPauseToggle => _onPlayPauseToggle;
@@ -38,7 +40,7 @@ class PlayerProvider with ChangeNotifier {
     required String title,
     required String artistAlbum,
     required bool isPlaying,
-    required Duration currentPositon,
+    required Duration currentPosition,
     required Duration totalDuration,
     required VoidCallback onPlayPauseToggle,
     required VoidCallback onPrevious,
@@ -49,7 +51,7 @@ class PlayerProvider with ChangeNotifier {
     _artistAlbum = artistAlbum;
     _coverImage = coverImage;
     _isPlaying = isPlaying;
-    _currentPosition = currentPositon;
+    _currentPosition = currentPosition;
     _totalDuration = totalDuration;
 
     // 初始化回调函数
@@ -58,6 +60,34 @@ class PlayerProvider with ChangeNotifier {
     _onNext = onNext;
     _onSeek = onSeek;
 
+    notifyListeners();
+  }
+
+  void setCurrentIndex(int index) {
+    _currentIndex = index;
+    notifyListeners();
+  }
+
+  void syncPlaybackState({
+    required bool isPlaying,
+    required Duration currentPosition,
+    required Duration totalDuration,
+  }) {
+    _isPlaying = isPlaying;
+    _currentPosition = currentPosition;
+    _totalDuration = totalDuration;
+    notifyListeners();
+  }
+
+  // 新增状态同步方法
+  void updateSongMetadata({
+    required String title,
+    required String artistAlbum,
+    required Uint8List? coverImage,
+  }) {
+    _songTitle = title;
+    _artistAlbum = artistAlbum;
+    _coverImage = coverImage;
     notifyListeners();
   }
 

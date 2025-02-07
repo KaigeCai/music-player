@@ -201,10 +201,7 @@ class PlaybackControls extends StatelessWidget {
             onPressed: args.onPrevious,
           ),
           IconButton(
-            icon: Icon(
-              args.isPlaying ? Icons.pause_circle : Icons.play_circle,
-              size: 64,
-            ),
+            icon: Icon(args.isPlaying ? Icons.pause_circle : Icons.play_circle, size: 64),
             onPressed: args.onPlayPauseToggle,
           ),
           IconButton(
