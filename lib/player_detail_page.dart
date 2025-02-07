@@ -220,11 +220,19 @@ class PlaybackProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<PlayerProvider>(builder: (context, args, child) {
+      final int totalSeconds = args.totalDuration.inSeconds;
+      final bool hasDuration = totalSeconds > 0;
+      final double maxDuration = hasDuration ? totalSeconds.toDouble() : 1.0;
+
+      final double currentPos = args.currentPosition.inSeconds.toDouble();
+      final double clampedValue = currentPos.clamp(0.0, maxDuration); // 避免越界
+
       return Column(
         children: [
           Slider(
-            value: args.currentPosition.inSeconds.toDouble(),
-            max: args.totalDuration.inSeconds.toDouble(),
+            value: clampedValue.isFinite ? clampedValue : 0.0, // 确保 value 合法
+            min: 0.0,
+            max: maxDuration, // 确保 max 不为 0
             activeColor: Colors.blue,
             onChanged: (value) {
               args.seek(Duration(seconds: value.toInt()));

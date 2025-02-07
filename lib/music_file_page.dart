@@ -194,13 +194,26 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   // 播放音频文件
   Future<void> _playAudio(String filePath) async {
-    setState(() => _currentFile = filePath);
+    setState(() {
+      _currentFile = filePath;
+      _currentPosition = Duration.zero;
+      _totalDuration = Duration.zero; // 确保切换歌曲时进度重置
+    });
+
     final index = _audioFiles.indexOf(filePath);
     final provider = context.read<PlayerProvider>();
 
     // 加载新歌曲元数据
     final tag = await _loadAudioTag(filePath);
     final fileName = p.basenameWithoutExtension(filePath);
+
+    _player.stream.duration.first.then((duration) {
+      if (mounted) {
+        setState(() {
+          _totalDuration = duration; // 确保 duration 正确更新
+        });
+      }
+    });
 
     provider
       ..setCurrentIndex(index)
@@ -615,11 +628,14 @@ class _MusicFilePageState extends State<MusicFilePage> {
                             overlayShape: RoundSliderOverlayShape(overlayRadius: 0.0),
                           ),
                           child: Slider(
-                            value: currentValue,
+                            value: currentValue.isFinite ? currentValue : 0.0, // 避免 NaN 或无效值
+                            min: 0.0,
+                            max: maxDuration, // 确保 max 不为 0
                             activeColor: Colors.blue,
-                            max: maxDuration,
                             onChangeStart: (value) {
-                              _draggingPosition = Duration(seconds: value.toInt());
+                              setState(() {
+                                _draggingPosition = Duration(seconds: value.toInt());
+                              });
                               _player.pause();
                             },
                             onChanged: (value) {
