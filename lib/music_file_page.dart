@@ -26,7 +26,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
   List<String> _audioFiles = [];
   bool _isScanning = false;
   String? _currentFile;
-  final Duration _currentPosition = Duration.zero;
+  Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
   bool _isPlaying = false;
   Duration? _draggingPosition; // 用于记录拖动中的位置
@@ -91,22 +91,29 @@ class _MusicFilePageState extends State<MusicFilePage> {
               currentPosition: position,
               totalDuration: _totalDuration,
             );
+        setState(() {
+          _currentPosition = position; // 确保进度条更新
+        });
       }
     });
 
     _player.stream.duration.listen((duration) {
-      _totalDuration = duration;
       if (mounted) {
+        setState(() {
+          _totalDuration = duration;
+        });
         context.read<PlayerProvider>().syncPlaybackState(
               isPlaying: _isPlaying,
-              currentPosition: _currentPosition,
+              currentPosition: duration,
               totalDuration: duration,
             );
       }
     });
 
     _player.stream.playing.listen((playing) {
-      _isPlaying = playing;
+      setState(() {
+        _isPlaying = playing;
+      });
       if (mounted) {
         context.read<PlayerProvider>().syncPlaybackState(
               isPlaying: playing,
