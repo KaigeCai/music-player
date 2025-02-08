@@ -348,6 +348,47 @@ class _MusicFilePageState extends State<MusicFilePage> {
     );
   }
 
+  int _getRealIndex(int index) {
+    if (_audioFiles.isEmpty) return 0;
+    if (index == 0) return _audioFiles.length - 1; // 第一页 -> 最后一首
+    if (index == _audioFiles.length + 1) return 0; // 最后一页 -> 第一首
+    return index - 1; // 其他情况，正常索引
+  }
+
+  Song _getSongFromIndex(int index) {
+    final filePath = _audioFiles[index];
+    final tag = _audioTags[index];
+
+    return Song(
+      title: tag?.title ?? p.basenameWithoutExtension(filePath),
+      artist: tag?.trackArtist ?? '未知艺术家',
+      album: tag?.album ?? '未知专辑',
+      coverImage: tag?.pictures.isNotEmpty ?? false ? tag!.pictures.first.bytes : null,
+    );
+  }
+
+  void _handlePageChange(int index) {
+    int actualIndex = _getRealIndex(index); // 🔥 获取真实索引
+
+    if (index == 0) {
+      // 滑到假的第一页，瞬间跳转到最后一首
+      Future.microtask(() {
+        _pageController!.jumpToPage(_audioFiles.length);
+      });
+    } else if (index == _audioFiles.length + 1) {
+      // 滑到假的最后一页，瞬间跳转到第一首
+      Future.microtask(() {
+        _pageController!.jumpToPage(1);
+      });
+    } else {
+      setState(() {
+        _currentFileIndex = actualIndex; // 🔥 同步 GridView 索引
+        _currentFile = _audioFiles[actualIndex];
+      });
+      _playAudio(_audioFiles[actualIndex]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: true);
@@ -408,6 +449,8 @@ class _MusicFilePageState extends State<MusicFilePage> {
                   ),
                   itemCount: _audioFiles.length,
                   itemBuilder: (context, index) {
+                    bool isSelected = index == _currentFileIndex; // 🔥 这里同步 GridView 的选中状态
+
                     Widget cover;
 
                     final Tag? tag = _audioTags[index];
@@ -463,23 +506,22 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     }
                     return GestureDetector(
                       onTap: () {
-                        setState(() {
-                          _currentFile = file; // 设置当前文件路径
-                          _currentFileIndex = index; // 设置当前文件索引
-                        });
-                        // 如果 PageController 未初始化，则动态创建
                         if (!_isPageControllerInitialized) {
-                          _pageController = PageController(initialPage: index);
+                          _pageController = PageController(initialPage: 1);
                           _isPageControllerInitialized = true;
                         } else if (_pageController!.hasClients) {
-                          _pageController!.jumpToPage(index); // 如果已经初始化，直接跳转
+                          _pageController!.jumpToPage(index + 1); // 🔥 `PageView` 和 `GridView` 索引同步
                         }
-                        _playAudio(file);
+                        setState(() {
+                          _currentFileIndex = index;
+                          _currentFile = _audioFiles[index];
+                        });
+                        _playAudio(_audioFiles[index]);
                       },
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: index == _currentFileIndex ? Colors.blue : Colors.transparent,
+                            color: isSelected ? Colors.blue : Colors.transparent,
                             width: 2.0,
                           ),
                           borderRadius: BorderRadius.circular(10.0),
@@ -610,15 +652,13 @@ class _MusicFilePageState extends State<MusicFilePage> {
                           height: 99.0,
                           child: PageView.builder(
                             controller: _pageController,
-                            itemCount: _audioFiles.length,
+                            itemCount: _audioFiles.length + 2, // 🔥 额外加前后两个“假”页面
                             onPageChanged: (index) {
-                              setState(() {
-                                _currentFileIndex = index;
-                                _currentFile = _audioFiles[index];
-                                _playAudio(_audioFiles[index]); // 切换歌曲时自动播放
-                              });
+                              _handlePageChange(index);
                             },
                             itemBuilder: (context, index) {
+                              int actualIndex = _getRealIndex(index); // 🔥 计算真实歌曲索引
+                              Song song = _getSongFromIndex(actualIndex); // 🔥 获取真正的 Song 对象
                               return _buildSongTile(song);
                             },
                           ),
