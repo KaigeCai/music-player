@@ -83,6 +83,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   @override
   void initState() {
+    _currentFileIndex = _audioFiles.isNotEmpty ? 0 : null;
     _player = Player();
     _player.stream.position.listen((position) {
       if (mounted) {
@@ -250,44 +251,48 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   // 获取上一首歌曲
   String? _getPreviousSong() {
+    if (_audioFiles.isEmpty) return null;
     final currentIndex = _audioFiles.indexOf(_currentFile ?? '');
-    if (currentIndex > 0) {
-      return _audioFiles[currentIndex - 1];
-    }
-    return null; // 如果是第一首，则返回 null
+    if (currentIndex == -1) return null; // 🔥 避免无效索引
+    final previousIndex = (currentIndex - 1 + _audioFiles.length) % _audioFiles.length;
+    return _audioFiles[previousIndex];
   }
 
   // 获取下一首歌曲
   String? _getNextSong() {
+    if (_audioFiles.isEmpty) return null;
     final currentIndex = _audioFiles.indexOf(_currentFile ?? '');
-    if (currentIndex < _audioFiles.length - 1) {
-      return _audioFiles[currentIndex + 1];
-    }
-    return null; // 如果是最后一首，则返回 null
+    if (currentIndex == -1) return null; // 🔥 避免无效索引
+    final nextIndex = (currentIndex + 1) % _audioFiles.length;
+    return _audioFiles[nextIndex];
   }
 
   // 切换到上一首歌曲
   void _playPrevious() {
-    final previous = _getPreviousSong();
-    if (previous != null) {
-      _playAudio(previous);
+    if (_audioFiles.isEmpty) return;
+    final previousSong = _getPreviousSong(); // 🔥 确保调用 _getPreviousSong
+    if (previousSong != null) {
+      setState(() {
+        _currentFile = previousSong;
+        _currentFileIndex = _audioFiles.indexOf(previousSong);
+      });
+      _playAudio(previousSong);
+      _pageController?.jumpToPage(_currentFileIndex!); // 🔥 让 PageView 也同步
     }
-    setState(() {
-      _currentFileIndex = _currentFileIndex! - 1;
-      _pageController!.jumpToPage(_currentFileIndex!);
-    });
   }
 
   // 切换到下一首歌曲
   void _playNext() {
-    final next = _getNextSong();
-    if (next != null) {
-      _playAudio(next);
+    if (_audioFiles.isEmpty) return;
+    final nextSong = _getNextSong(); // 🔥 确保调用 _getNextSong
+    if (nextSong != null) {
+      setState(() {
+        _currentFile = nextSong;
+        _currentFileIndex = _audioFiles.indexOf(nextSong);
+      });
+      _playAudio(nextSong);
+      _pageController?.jumpToPage(_currentFileIndex!); // 🔥 让 PageView 也同步
     }
-    setState(() {
-      _currentFileIndex = _currentFileIndex! + 1;
-      _pageController!.jumpToPage(_currentFileIndex!);
-    });
   }
 
   // 构建歌曲显示组件
