@@ -84,6 +84,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
   @override
   void initState() {
     _currentFileIndex = _audioFiles.isNotEmpty ? 0 : null;
+    if (!_isPageControllerInitialized) {
+      _pageController = PageController(initialPage: 1);
+      _isPageControllerInitialized = true;
+    }
     _player = Player();
     _player.stream.position.listen((position) {
       if (mounted) {
@@ -277,7 +281,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _currentFileIndex = _audioFiles.indexOf(previousSong);
       });
       _playAudio(previousSong);
-      _pageController?.jumpToPage(_currentFileIndex!); // 🔥 让 PageView 也同步
+      _pageController?.jumpToPage(_currentFileIndex! + 1); // 🔥 让 PageView 也同步
     }
   }
 
@@ -291,7 +295,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _currentFileIndex = _audioFiles.indexOf(nextSong);
       });
       _playAudio(nextSong);
-      _pageController?.jumpToPage(_currentFileIndex!); // 🔥 让 PageView 也同步
+      _pageController?.jumpToPage(_currentFileIndex! + 1); // 🔥 让 PageView 也同步
     }
   }
 
@@ -506,15 +510,13 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     }
                     return GestureDetector(
                       onTap: () {
-                        if (!_isPageControllerInitialized) {
-                          _pageController = PageController(initialPage: 1);
-                          _isPageControllerInitialized = true;
-                        } else if (_pageController!.hasClients) {
-                          _pageController!.jumpToPage(index + 1); // 🔥 `PageView` 和 `GridView` 索引同步
-                        }
                         setState(() {
                           _currentFileIndex = index;
                           _currentFile = _audioFiles[index];
+                          if (_pageController?.hasClients ?? false) {
+                            _pageController!.jumpToPage(index + 1);
+                          }
+                          
                         });
                         _playAudio(_audioFiles[index]);
                       },
