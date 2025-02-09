@@ -45,13 +45,25 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   StreamSubscription<FileSystemEvent>? _directorySubscription;
 
+  Future<void> _initializeFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final directory = prefs.getString('last_directory');
+
+    if (directory != null && Directory(directory).existsSync()) {
+      _scanAudioFiles(directory); // 仅扫描一次
+      _startWatchingDirectory(directory); // 开始监听文件夹变化
+    }
+  }
+
   void _startWatchingDirectory(String directoryPath) {
     final dir = Directory(directoryPath);
 
+    _directorySubscription?.cancel(); // 避免重复监听
+
     // 监听文件夹变化
-    _directorySubscription = dir.watch(events: FileSystemEvent.create).listen((event) async {
+    _directorySubscription = dir.watch(events: FileSystemEvent.all).listen((event) async {
+      final file = File(event.path);
       if (event is FileSystemCreateEvent) {
-        final file = File(event.path);
         if (await _isAudioFile(file)) {
           final tag = await _loadAudioTag(file.path);
           setState(() {
@@ -61,8 +73,11 @@ class _MusicFilePageState extends State<MusicFilePage> {
         }
       } else if (event is FileSystemDeleteEvent) {
         setState(() {
-          _audioFiles.remove(event.path);
-          _audioTags.removeWhere((tag) => _audioFiles.contains(tag.toString()));
+          int index = _audioFiles.indexOf(file.path);
+          if (index != -1) {
+            _audioFiles.removeAt(index);
+            _audioTags.removeAt(index);
+          }
         });
       }
     });
@@ -88,6 +103,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
       _pageController = PageController(initialPage: 1);
       _isPageControllerInitialized = true;
     }
+    Future.microtask(_initializeFiles);
     _player = Player();
     _player.stream.position.listen((position) {
       if (mounted) {
@@ -213,7 +229,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _pageController?.jumpToPage(index + 1);
       }
     });
-    
+
     // 加载新歌曲元数据
     final tag = await _loadAudioTag(filePath);
     final fileName = p.basenameWithoutExtension(filePath);
