@@ -11,7 +11,7 @@ import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   MediaKit.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
@@ -39,65 +39,25 @@ void main() async {
   );
 }
 
-class MusicApp extends StatefulWidget {
+class MusicApp extends StatelessWidget {
   const MusicApp({super.key});
-
-  @override
-  State<MusicApp> createState() => _MusicAppState();
-}
-
-class _MusicAppState extends State<MusicApp> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    WidgetsBinding.instance.addObserver(this); // 监听窗口变化
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // 移除监听
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    super.didChangeAppLifecycleState(state);
-  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      navigatorObservers: [GlobalNavObserver()],
       initialRoute: '/',
       routes: {
         '/': (context) => MusicFilePage(),
         '/playerDetail': (context) => PlayerDetailPage(),
       },
       theme: ThemeData(
+        fontFamily: 'Quicksand',
         primarySwatch: Colors.blue,
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: Colors.white,
         ),
       ),
     );
-  }
-}
-
-class GlobalNavObserver extends NavigatorObserver {
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPush(route, previousRoute);
-    // 每次进入新页面时隐藏状态栏
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPop(route, previousRoute);
-    // 返回上一页面时隐藏状态栏
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
   }
 }
