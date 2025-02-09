@@ -260,8 +260,14 @@ class PlaybackProgress extends StatelessWidget {
   }
 
   String formatDuration(Duration duration) {
-    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+
+    if (hours > 0) {
+      return '$hours:$minutes:$seconds';
+    } else {
+      return '$minutes:$seconds';
+    }
   }
 }
