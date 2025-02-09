@@ -35,6 +35,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
   int? _currentFileIndex; // 当前点击的文件索引
   PageController? _pageController;
   bool _isPageControllerInitialized = false; // 是否已初始化
+  bool _hasInitialScan = false;
 
   Song song = Song(
     coverImage: Uint8List(0),
@@ -46,12 +47,17 @@ class _MusicFilePageState extends State<MusicFilePage> {
   StreamSubscription<FileSystemEvent>? _directorySubscription;
 
   Future<void> _initializeFiles() async {
+    if (_hasInitialScan) return; // 防止重复初始化扫描
+
     final prefs = await SharedPreferences.getInstance();
     final directory = prefs.getString('last_directory');
 
     if (directory != null && Directory(directory).existsSync()) {
-      _scanAudioFiles(directory); // 仅扫描一次
-      _startWatchingDirectory(directory); // 开始监听文件夹变化
+      setState(() => _isScanning = true);
+      await _scanAudioFiles(directory);
+      _startWatchingDirectory(directory);
+      _hasInitialScan = true;
+      setState(() => _isScanning = false);
     }
   }
 
@@ -157,10 +163,12 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   // 加载上次使用的文件夹路径
   Future<void> _loadLastDirectory() async {
+    if (_hasInitialScan) return; // 防止重复初始化扫描
     final prefs = await SharedPreferences.getInstance();
     final directory = prefs.getString('last_directory');
     if (directory != null && Directory(directory).existsSync()) {
       _scanAudioFiles(directory);
+      _hasInitialScan = true;
     }
   }
 
@@ -206,6 +214,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
         }
       }
     }
+
     setState(() {
       _audioFiles = audioFiles;
       _audioTags = audioTags;
@@ -436,7 +445,17 @@ class _MusicFilePageState extends State<MusicFilePage> {
               final crossAxisCount = (screenWidth / itemWidth).floor().clamp(1, 10);
 
               if (_isScanning) {
-                return Center(child: CircularProgressIndicator());
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: Colors.blue),
+                      SizedBox(height: 8.0),
+                      Text('扫描文件中...', style: TextStyle(fontSize: 18.0)),
+                      Text('已找到 ${_audioFiles.length} 首歌曲'),
+                    ],
+                  ),
+                );
               }
 
               if (_audioFiles.isEmpty) {
@@ -457,6 +476,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                   ),
                 );
               }
+
               return ScrollConfiguration(
                 behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
                 child: GridView.builder(
