@@ -35,7 +35,6 @@ class _MusicFilePageState extends State<MusicFilePage> {
   int? _currentFileIndex; // 当前点击的文件索引
   PageController? _pageController;
   bool _isPageControllerInitialized = false; // 是否已初始化
-  bool _hasInitialScan = false;
 
   Song song = Song(
     coverImage: Uint8List(0),
@@ -45,21 +44,6 @@ class _MusicFilePageState extends State<MusicFilePage> {
   );
 
   StreamSubscription<FileSystemEvent>? _directorySubscription;
-
-  Future<void> _initializeFiles() async {
-    if (_hasInitialScan) return; // 防止重复初始化扫描
-
-    final prefs = await SharedPreferences.getInstance();
-    final directory = prefs.getString('last_directory');
-
-    if (directory != null && Directory(directory).existsSync()) {
-      setState(() => _isScanning = true);
-      await _scanAudioFiles(directory);
-      _startWatchingDirectory(directory);
-      _hasInitialScan = true;
-      setState(() => _isScanning = false);
-    }
-  }
 
   // 实时监测文件变化
   void _startWatchingDirectory(String directoryPath) {
@@ -128,7 +112,6 @@ class _MusicFilePageState extends State<MusicFilePage> {
       _pageController = PageController(initialPage: 1);
       _isPageControllerInitialized = true;
     }
-    Future.microtask(_initializeFiles);
     _player = Player();
     _player.stream.position.listen((position) {
       if (mounted) {
@@ -182,12 +165,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   // 加载上次使用的文件夹路径
   Future<void> _loadLastDirectory() async {
-    if (_hasInitialScan) return; // 防止重复初始化扫描
     final prefs = await SharedPreferences.getInstance();
     final directory = prefs.getString('last_directory');
     if (directory != null && Directory(directory).existsSync()) {
       _scanAudioFiles(directory);
-      _hasInitialScan = true;
     }
   }
 
@@ -206,6 +187,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _isScanning = true;
       });
       await _saveLastDirectory(directory);
+      _scanAudioFiles(directory);
       _startWatchingDirectory(directory); // 开始监听文件夹变化
       setState(() {
         _isScanning = false;
@@ -215,6 +197,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   // 扫描音频文件
   Future<void> _scanAudioFiles(String directory) async {
+    setState(() {
+      _isScanning = true;
+    });
+
     final dir = Directory(directory);
     final files = dir.listSync(recursive: false, followLinks: false);
     final audioExtensions = ['.mp3', '.wav', '.flac', '.aac'];
