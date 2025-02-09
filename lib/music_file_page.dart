@@ -61,20 +61,21 @@ class _MusicFilePageState extends State<MusicFilePage> {
     }
   }
 
+  // 实时监测文件变化
   void _startWatchingDirectory(String directoryPath) {
     final dir = Directory(directoryPath);
-
     _directorySubscription?.cancel(); // 避免重复监听
 
-    // 监听文件夹变化
     _directorySubscription = dir.watch(events: FileSystemEvent.all).listen((event) async {
       final file = File(event.path);
       if (event is FileSystemCreateEvent) {
         if (await _isAudioFile(file)) {
           final tag = await _loadAudioTag(file.path);
+
           setState(() {
             _audioFiles.add(file.path);
             _audioTags.add(tag);
+            _sortFilesByModifiedTime(); // 添加后重新排序
           });
         }
       } else if (event is FileSystemDeleteEvent) {
@@ -86,6 +87,24 @@ class _MusicFilePageState extends State<MusicFilePage> {
           }
         });
       }
+    });
+  }
+
+  void _sortFilesByModifiedTime() {
+    List<Map<String, dynamic>> fileData = [];
+
+    for (int i = 0; i < _audioFiles.length; i++) {
+      final file = File(_audioFiles[i]);
+      final modifiedTime = file.existsSync() ? file.lastModifiedSync() : DateTime(1970);
+      fileData.add({'path': _audioFiles[i], 'modified': modifiedTime, 'tag': _audioTags[i]});
+    }
+
+    // 按修改时间降序排序
+    fileData.sort((a, b) => b['modified'].compareTo(a['modified']));
+
+    setState(() {
+      _audioFiles = fileData.map((e) => e['path'] as String).toList();
+      _audioTags = fileData.map((e) => e['tag'] as Tag?).toList();
     });
   }
 
@@ -200,27 +219,36 @@ class _MusicFilePageState extends State<MusicFilePage> {
     final files = dir.listSync(recursive: false, followLinks: false);
     final audioExtensions = ['.mp3', '.wav', '.flac', '.aac'];
 
-    List<String> audioFiles = [];
-    List<Tag?> audioTags = [];
+    List<Map<String, dynamic>> fileData = [];
+
     for (var file in files) {
       if (file is File && audioExtensions.any(file.path.endsWith)) {
-        audioFiles.add(file.path);
-        // 加载音频标签
-        try {
-          final tag = await AudioTags.read(file.path);
-          audioTags.add(tag);
-        } catch (e) {
-          audioTags.add(null);
-        }
+        final modifiedTime = file.lastModifiedSync();
+        fileData.add({'path': file.path, 'modified': modifiedTime});
+      }
+    }
+
+    // 按照修改时间降序排列（最新的在前）
+    fileData.sort((a, b) => b['modified'].compareTo(a['modified']));
+
+    List<String> sortedAudioFiles = fileData.map((e) => e['path'] as String).toList();
+    List<Tag?> audioTags = [];
+
+    for (var filePath in sortedAudioFiles) {
+      try {
+        final tag = await AudioTags.read(filePath);
+        audioTags.add(tag);
+      } catch (e) {
+        audioTags.add(null);
       }
     }
 
     setState(() {
-      _audioFiles = audioFiles;
+      _audioFiles = sortedAudioFiles;
       _audioTags = audioTags;
     });
 
-    await Future.delayed(Duration(seconds: 2)); 
+    await Future.delayed(Duration(seconds: 1));
 
     setState(() {
       _isScanning = false;
@@ -260,7 +288,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
       ..setCurrentIndex(index)
       ..updateSongMetadata(
         title: tag?.title ?? fileName,
-        artistAlbum: '${tag?.trackArtist ?? "未知艺术家"} - ${tag?.album ?? "未知专辑"}',
+        artistAlbum: '${tag?.trackArtist ?? '未知艺术家'} - ${tag?.album ?? '未知专辑'}',
         coverImage: tag?.pictures.isNotEmpty ?? false ? tag!.pictures.first.bytes : null,
       )
       ..syncPlaybackState(
@@ -589,7 +617,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                                 ),
                               ),
                               Text(
-                                "${song.artist} - ${song.album}",
+                                '${song.artist} - ${song.album}',
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
