@@ -218,6 +218,11 @@ class _MusicFilePageState extends State<MusicFilePage> {
     setState(() {
       _audioFiles = audioFiles;
       _audioTags = audioTags;
+    });
+
+    await Future.delayed(Duration(seconds: 2)); 
+
+    setState(() {
       _isScanning = false;
     });
   }
