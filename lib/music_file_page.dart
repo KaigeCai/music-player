@@ -208,6 +208,12 @@ class _MusicFilePageState extends State<MusicFilePage> {
     final index = _audioFiles.indexOf(filePath);
     final provider = context.read<PlayerProvider>();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController?.hasClients ?? false) {
+        _pageController?.jumpToPage(index + 1);
+      }
+    });
+    
     // 加载新歌曲元数据
     final tag = await _loadAudioTag(filePath);
     final fileName = p.basenameWithoutExtension(filePath);
@@ -513,10 +519,6 @@ class _MusicFilePageState extends State<MusicFilePage> {
                         setState(() {
                           _currentFileIndex = index;
                           _currentFile = _audioFiles[index];
-                          if (_pageController?.hasClients ?? false) {
-                            _pageController!.jumpToPage(index + 1);
-                          }
-                          
                         });
                         _playAudio(_audioFiles[index]);
                       },
