@@ -35,6 +35,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
   int? _currentFileIndex; // 当前点击的文件索引
   PageController? _pageController;
   bool _isPageControllerInitialized = false; // 是否已初始化
+  int _scannedFileCount = 0; // 当前已扫描的文件数量
 
   Song song = Song(
     coverImage: Uint8List(0),
@@ -185,9 +186,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
     if (directory != null) {
       setState(() {
         _isScanning = true;
+        _scannedFileCount = 0; // 重置已扫描的文件数量
       });
       await _saveLastDirectory(directory);
-      _scanAudioFiles(directory);
+      await _scanAudioFiles(directory);
       _startWatchingDirectory(directory); // 开始监听文件夹变化
       setState(() {
         _isScanning = false;
@@ -211,6 +213,12 @@ class _MusicFilePageState extends State<MusicFilePage> {
       if (file is File && audioExtensions.any(file.path.endsWith)) {
         final modifiedTime = file.lastModifiedSync();
         fileData.add({'path': file.path, 'modified': modifiedTime});
+        // 更新已扫描的文件数量
+        setState(() {
+          _scannedFileCount = fileData.length; // 实时更新已扫描的文件数量
+        });
+        // 模拟扫描延迟
+        await Future.delayed(Duration(milliseconds: 10)); // 添加延迟以显示扫描过程
       }
     }
 
@@ -232,9 +240,8 @@ class _MusicFilePageState extends State<MusicFilePage> {
     setState(() {
       _audioFiles = sortedAudioFiles;
       _audioTags = audioTags;
+      _scannedFileCount = _audioFiles.length; // 扫描完成后更新为最终数量
     });
-
-    await Future.delayed(Duration(seconds: 1));
 
     setState(() {
       _isScanning = false;
@@ -471,7 +478,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                       CircularProgressIndicator(color: Colors.blue),
                       SizedBox(height: 8.0),
                       Text('扫描文件中...', style: TextStyle(fontSize: 18.0)),
-                      Text('已找到 ${_audioFiles.length} 首歌曲'),
+                      Text('已找到 $_scannedFileCount 首歌曲'),
                     ],
                   ),
                 );
