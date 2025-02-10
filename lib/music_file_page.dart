@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:audiotags/audiotags.dart';
@@ -171,22 +170,17 @@ class _MusicFilePageState extends State<MusicFilePage> {
   Future<List<LyricLine>> _extractLyrics(String filePath) async {
     try {
       final command = FfmpegCommand.simple(
-        inputs: [FfmpegInput.asset(filePath)],
+        inputs: [FfmpegInput.asset(filePath)], // 传入音频文件
         args: [
-          CliArg(name: '-f', value: 'ffmetadata'),
+          CliArg(name: 'f', value: 'ffmetadata'),
         ],
-        outputFilepath: 'lyrics.lrc',
+        outputFilepath: 'lyrics.lrc', // 临时存储歌词
       );
+      await Ffmpeg().run(command);
 
-      final process = await Ffmpeg().run(command);
-      final exitCode = await process.exitCode;
+      debugPrint(command.toCli().toString());
 
-      if (exitCode != 0) {
-        throw Exception('FFmpeg failed with exit code $exitCode');
-      }
-
-      // 从标准输出读取歌词数据
-      final lyricsData = await process.stdout.transform(utf8.decoder).join();
+      final lyricsData = await File('lyrics.lrc').readAsString();
 
       return _parseLrc(lyricsData);
     } catch (e) {
