@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:audiotags/audiotags.dart';
 import 'package:ffmpeg_cli/ffmpeg_cli.dart';
 import 'package:file_picker/file_picker.dart';
@@ -187,7 +186,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
       debugPrint(command.toCli().toString());
       final lyricsFile = File(outputFilePath);
       if (!await lyricsFile.exists()) {
-        throw Exception("歌词文件未生成");
+        throw Exception('歌词文件未生成');
       }
       final lyricsData = await lyricsFile.readAsString(encoding: utf8);
       debugPrint(lyricsData);
