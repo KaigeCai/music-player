@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 
+import '../widget/lyrics_widget.dart';
+
 class PlayerProvider with ChangeNotifier {
   int? _currentIndex;
   // 播放信息
@@ -19,6 +21,8 @@ class PlayerProvider with ChangeNotifier {
   late VoidCallback _onNext;
   late Function(Duration) _onSeek;
 
+  List<LyricLine> _currentLyrics = [];
+
   // Getters
   String get songTitle => _songTitle;
   String get artistAlbum => _artistAlbum;
@@ -27,12 +31,19 @@ class PlayerProvider with ChangeNotifier {
   Duration get currentPosition => _currentPosition;
   Duration get totalDuration => _totalDuration;
   int? get currentIndex => _currentIndex;
+  List<LyricLine> get currentLyrics => _currentLyrics;
 
   // 回调函数暴露为公共接口
   VoidCallback get onPlayPauseToggle => _onPlayPauseToggle;
   VoidCallback get onPrevious => _onPrevious;
   VoidCallback get onNext => _onNext;
   Function(Duration) get onSeek => _onSeek;
+
+  // 更新歌词
+  void updateLyrics(List<LyricLine> lyrics) {
+    _currentLyrics = lyrics;
+    notifyListeners();
+  }
 
   // 设置播放信息
   void setSong({

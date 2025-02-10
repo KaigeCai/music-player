@@ -40,13 +40,24 @@ class PlayerDetailPageState extends State<PlayerDetailPage> {
       },
       child: Focus(
         autofocus: true,
-        child: Scaffold(
-          body: SingleChildScrollView(
-            physics: BouncingScrollPhysics(),
-            scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
-            child: isPortrait ? PortraitLayout(imageKey: imageKey) : LandscapeLayout(imageWidth: imageWidth, imageKey: imageKey),
-          ),
-        ),
+        child: Consumer<PlayerProvider>(builder: (context, provider, widget) {
+          return Scaffold(
+            body: SingleChildScrollView(
+              physics: BouncingScrollPhysics(),
+              scrollDirection: isPortrait ? Axis.vertical : Axis.horizontal,
+              child: isPortrait
+                  ? PortraitLayout(
+                      imageKey: imageKey,
+                      lyrics: provider.currentLyrics,
+                    )
+                  : LandscapeLayout(
+                      imageWidth: imageWidth,
+                      imageKey: imageKey,
+                      lyrics: provider.currentLyrics,
+                    ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -54,8 +65,13 @@ class PlayerDetailPageState extends State<PlayerDetailPage> {
 
 class PortraitLayout extends StatelessWidget {
   final GlobalKey imageKey;
+  final List<LyricLine> lyrics;
 
-  const PortraitLayout({super.key, required this.imageKey});
+  const PortraitLayout({
+    super.key,
+    required this.imageKey,
+    required this.lyrics,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +83,7 @@ class PortraitLayout extends StatelessWidget {
             AlbumArt(imageKey: imageKey, coverImage: args.coverImage),
             SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
             ActionButtons(),
-            LyricsWidget(),
+            LyricsWidget(lyrics: args.currentLyrics),
             PlaybackControls(),
             PlaybackProgress(),
           ],
@@ -80,8 +96,14 @@ class PortraitLayout extends StatelessWidget {
 class LandscapeLayout extends StatelessWidget {
   final double imageWidth;
   final GlobalKey imageKey;
+  final List<LyricLine> lyrics;
 
-  const LandscapeLayout({super.key, required this.imageWidth, required this.imageKey});
+  const LandscapeLayout({
+    super.key,
+    required this.imageWidth,
+    required this.imageKey,
+    required this.lyrics,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +119,7 @@ class LandscapeLayout extends StatelessWidget {
               children: [
                 SongInfo(songTitle: args.songTitle, artistAlbum: args.artistAlbum),
                 ActionButtons(),
-                LyricsWidget(),
+                LyricsWidget(lyrics: args.currentLyrics),
                 PlaybackControls(),
                 PlaybackProgress(),
               ],

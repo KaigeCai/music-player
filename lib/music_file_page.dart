@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audiotags/audiotags.dart';
+import 'package:ffmpeg_cli/ffmpeg_cli.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'global/player_provider.dart';
+import 'widget/lyrics_widget.dart';
 
 class MusicFilePage extends StatefulWidget {
   const MusicFilePage({super.key});
@@ -164,6 +166,48 @@ class _MusicFilePageState extends State<MusicFilePage> {
     super.dispose();
   }
 
+  Future<List<LyricLine>> _extractLyrics(String filePath) async {
+    try {
+      final result = await Ffmpeg.execute(
+        '-i "$filePath" -map 0:s:0 -f rawvideo -',
+        executeInShell: true,
+      );
+
+      if (result.exitCode != 0) return [];
+
+      final lyricsData = result.stdout.toString();
+      return _parseLrc(lyricsData);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  List<LyricLine> _parseLrc(String lrcContent) {
+    final lines = lrcContent.split('\n');
+    final List<LyricLine> lyrics = [];
+
+    final timeRegExp = RegExp(r'\[(\d+):(\d+\.\d+)\]');
+
+    for (var line in lines) {
+      final matches = timeRegExp.allMatches(line);
+      if (matches.isEmpty) continue;
+
+      final text = line.replaceAll(timeRegExp, '').trim();
+      if (text.isEmpty) continue;
+
+      for (final match in matches) {
+        final minutes = int.parse(match.group(1)!);
+        final seconds = double.parse(match.group(2)!);
+        final totalMs = (minutes * 60 + seconds) * 1000;
+
+        lyrics.add(LyricLine(totalMs.toInt(), text));
+      }
+    }
+
+    lyrics.sort((a, b) => a.timeStamp.compareTo(b.timeStamp));
+    return lyrics;
+  }
+
   // 加载上次使用的文件夹路径
   Future<void> _loadLastDirectory() async {
     final prefs = await SharedPreferences.getInstance();
@@ -218,7 +262,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
           _scannedFileCount = fileData.length; // 实时更新已扫描的文件数量
         });
         // 模拟扫描延迟
-        await Future.delayed(Duration(milliseconds: 10)); // 添加延迟以显示扫描过程
+        await Future.delayed(Duration(milliseconds: 1)); // 添加延迟以显示扫描过程
       }
     }
 
@@ -258,6 +302,10 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
     final index = _audioFiles.indexOf(filePath);
     final provider = context.read<PlayerProvider>();
+
+    // 加载歌词
+    final lyrics = await _extractLyrics(filePath);
+    context.read<PlayerProvider>().updateLyrics(lyrics);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController?.hasClients ?? false) {

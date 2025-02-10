@@ -30,6 +30,6 @@ flutter:
   uses-material-design: true
 
   fonts:
-    - family: Quicksand
+    - family: OPPOSans
       fonts:
-        - asset: asset/font/Quicksand.ttf
+        - asset: asset/font/OPPOSans.ttf

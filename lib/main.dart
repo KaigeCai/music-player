@@ -50,7 +50,7 @@ class MusicApp extends StatelessWidget {
         '/playerDetail': (context) => PlayerDetailPage(),
       },
       theme: ThemeData(
-        fontFamily: 'Quicksand',
+        fontFamily: 'OPPOSans',
         primarySwatch: Colors.blue,
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: Colors.white,
