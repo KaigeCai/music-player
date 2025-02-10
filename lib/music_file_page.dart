@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:audiotags/audiotags.dart';
@@ -166,50 +167,52 @@ class _MusicFilePageState extends State<MusicFilePage> {
     super.dispose();
   }
 
+  // 导出歌词 ffmpeg -i "song.flac" -f ffmetadata metadata.lrc
   Future<List<LyricLine>> _extractLyrics(String filePath) async {
     try {
       final command = FfmpegCommand.simple(
-        inputs: [FfmpegInput.asset(filePath)], // 传入音频文件
+        inputs: [FfmpegInput.asset(filePath)],
         args: [
-          CliArg(name: '-vn'), // 不处理视频流
-          CliArg(name: '-an'), // 不处理音频流
-          CliArg(name: '-codec:s', value: 'text'), // 解析字幕流（歌词）
-          CliArg(name: '-map', value: '0:s:0'), // 获取第一个字幕流
-          CliArg(name: '-f', value: 'srt'), // 指定输出格式为 SRT（字幕格式）
+          CliArg(name: '-f', value: 'ffmetadata'),
         ],
-        outputFilepath: '/tmp/lyrics.srt', // 临时存储歌词
+        outputFilepath: 'lyrics.lrc',
       );
 
       final process = await Ffmpeg().run(command);
+      final exitCode = await process.exitCode;
 
-      final lyricsData = process.stdout.toString().trim(); // 直接从 stdout 获取歌词文本
+      if (exitCode != 0) {
+        throw Exception('FFmpeg failed with exit code $exitCode');
+      }
+
+      // 从标准输出读取歌词数据
+      final lyricsData = await process.stdout.transform(utf8.decoder).join();
+
       return _parseLrc(lyricsData);
     } catch (e) {
       return [];
     }
   }
 
-  List<LyricLine> _parseLrc(String srtContent) {
-    final lines = srtContent.split('\n');
+  // 解析 LRC 格式歌词
+  List<LyricLine> _parseLrc(String lrcContent) {
+    final lines = lrcContent.split('\n');
     final List<LyricLine> lyrics = [];
-    final timeRegExp = RegExp(r'(\d+):(\d+):(\d+),(\d+)');
-
-    String? text;
-    int? timestamp;
+    final timeRegExp = RegExp(r'\[(\d+):(\d+\.\d+)\]');
 
     for (var line in lines) {
-      final timeMatch = timeRegExp.firstMatch(line);
-      if (timeMatch != null) {
-        final hours = int.parse(timeMatch.group(1)!);
-        final minutes = int.parse(timeMatch.group(2)!);
-        final seconds = int.parse(timeMatch.group(3)!);
-        final milliseconds = int.parse(timeMatch.group(4)!);
+      final matches = timeRegExp.allMatches(line);
+      if (matches.isEmpty) continue;
 
-        timestamp = (hours * 3600 + minutes * 60 + seconds) * 1000 + milliseconds;
-      } else if (line.trim().isNotEmpty && timestamp != null) {
-        text = line.trim();
-        lyrics.add(LyricLine(timestamp, text));
-        timestamp = null; // 处理下一行歌词
+      final text = line.replaceAll(timeRegExp, '').trim();
+      if (text.isEmpty) continue;
+
+      for (final match in matches) {
+        final minutes = int.parse(match.group(1)!);
+        final seconds = double.parse(match.group(2)!);
+        final timestamp = (minutes * 60 + seconds) * 1000; // 转换为毫秒
+
+        lyrics.add(LyricLine(timestamp.round(), text));
       }
     }
 
