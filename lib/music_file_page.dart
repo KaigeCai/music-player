@@ -168,39 +168,48 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
   Future<List<LyricLine>> _extractLyrics(String filePath) async {
     try {
-      final result = await Ffmpeg.execute(
-        '-i "$filePath" -map 0:s:0 -f rawvideo -',
-        executeInShell: true,
+      final command = FfmpegCommand.simple(
+        inputs: [FfmpegInput.asset(filePath)], // 传入音频文件
+        args: [
+          CliArg(name: '-vn'), // 不处理视频流
+          CliArg(name: '-an'), // 不处理音频流
+          CliArg(name: '-codec:s', value: 'text'), // 解析字幕流（歌词）
+          CliArg(name: '-map', value: '0:s:0'), // 获取第一个字幕流
+          CliArg(name: '-f', value: 'srt'), // 指定输出格式为 SRT（字幕格式）
+        ],
+        outputFilepath: '/tmp/lyrics.srt', // 临时存储歌词
       );
 
-      if (result.exitCode != 0) return [];
+      final process = await Ffmpeg().run(command);
 
-      final lyricsData = result.stdout.toString();
+      final lyricsData = process.stdout.toString().trim(); // 直接从 stdout 获取歌词文本
       return _parseLrc(lyricsData);
     } catch (e) {
       return [];
     }
   }
 
-  List<LyricLine> _parseLrc(String lrcContent) {
-    final lines = lrcContent.split('\n');
+  List<LyricLine> _parseLrc(String srtContent) {
+    final lines = srtContent.split('\n');
     final List<LyricLine> lyrics = [];
+    final timeRegExp = RegExp(r'(\d+):(\d+):(\d+),(\d+)');
 
-    final timeRegExp = RegExp(r'\[(\d+):(\d+\.\d+)\]');
+    String? text;
+    int? timestamp;
 
     for (var line in lines) {
-      final matches = timeRegExp.allMatches(line);
-      if (matches.isEmpty) continue;
+      final timeMatch = timeRegExp.firstMatch(line);
+      if (timeMatch != null) {
+        final hours = int.parse(timeMatch.group(1)!);
+        final minutes = int.parse(timeMatch.group(2)!);
+        final seconds = int.parse(timeMatch.group(3)!);
+        final milliseconds = int.parse(timeMatch.group(4)!);
 
-      final text = line.replaceAll(timeRegExp, '').trim();
-      if (text.isEmpty) continue;
-
-      for (final match in matches) {
-        final minutes = int.parse(match.group(1)!);
-        final seconds = double.parse(match.group(2)!);
-        final totalMs = (minutes * 60 + seconds) * 1000;
-
-        lyrics.add(LyricLine(totalMs.toInt(), text));
+        timestamp = (hours * 3600 + minutes * 60 + seconds) * 1000 + milliseconds;
+      } else if (line.trim().isNotEmpty && timestamp != null) {
+        text = line.trim();
+        lyrics.add(LyricLine(timestamp, text));
+        timestamp = null; // 处理下一行歌词
       }
     }
 
@@ -305,7 +314,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
     // 加载歌词
     final lyrics = await _extractLyrics(filePath);
-    context.read<PlayerProvider>().updateLyrics(lyrics);
+    if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController?.hasClients ?? false) {
