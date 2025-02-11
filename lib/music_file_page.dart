@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:audiotags/audiotags.dart';
+import 'package:ffmpeg_kit_flutter_full/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -174,10 +176,9 @@ class _MusicFilePageState extends State<MusicFilePage> {
       final directory = await getTemporaryDirectory();
       final outputFilePath = '${directory.path}/lyrics.lrc';
 
-      await Process.start(
-        'ffmpeg',
-        ['-i', '"$filePath"', '-f', 'ffmetadata', '-y', outputFilePath],
-      );
+      if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+        FFmpegKit.execute('-i "$filePath" -f ffmetadata -y $outputFilePath');
+      }
 
       final lyricsFile = File(outputFilePath);
       if (!await lyricsFile.exists()) {
@@ -387,7 +388,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
   }
 
   // 切换到上一首歌曲
-  void _playPrevious() {
+  void _playPrevious() async {
     if (_audioFiles.isEmpty) return;
     final previousSong = _getPreviousSong(); // 🔥 确保调用 _getPreviousSong
     if (previousSong != null) {
@@ -396,12 +397,15 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _currentFileIndex = _audioFiles.indexOf(previousSong);
       });
       _playAudio(previousSong);
+      // 加载歌词
+      final lyrics = await _extractLyrics(previousSong);
+      if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
       _pageController?.jumpToPage(_currentFileIndex! + 1); // 🔥 让 PageView 也同步
     }
   }
 
   // 切换到下一首歌曲
-  void _playNext() {
+  void _playNext() async {
     if (_audioFiles.isEmpty) return;
     final nextSong = _getNextSong(); // 🔥 确保调用 _getNextSong
     if (nextSong != null) {
@@ -410,6 +414,9 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _currentFileIndex = _audioFiles.indexOf(nextSong);
       });
       _playAudio(nextSong);
+      // 加载歌词
+      final lyrics = await _extractLyrics(nextSong);
+      if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
       _pageController?.jumpToPage(_currentFileIndex! + 1); // 🔥 让 PageView 也同步
     }
   }

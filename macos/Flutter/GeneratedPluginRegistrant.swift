@@ -6,6 +6,7 @@ import FlutterMacOS
 import Foundation
 
 import audiotags
+import ffmpeg_kit_flutter_full
 import media_kit_libs_macos_audio
 import path_provider_foundation
 import screen_retriever_macos
@@ -14,6 +15,7 @@ import window_manager
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AudiotagsPlugin.register(with: registry.registrar(forPlugin: "AudiotagsPlugin"))
+  FFmpegKitFlutterPlugin.register(with: registry.registrar(forPlugin: "FFmpegKitFlutterPlugin"))
   MediaKitLibsMacosAudioPlugin.register(with: registry.registrar(forPlugin: "MediaKitLibsMacosAudioPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   ScreenRetrieverMacosPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverMacosPlugin"))
