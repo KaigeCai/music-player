@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:audiotags/audiotags.dart';
-import 'package:ffmpeg_cli/ffmpeg_cli.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -167,29 +167,24 @@ class _MusicFilePageState extends State<MusicFilePage> {
     super.dispose();
   }
 
-  // 导出歌词 ffmpeg -i "song.flac" -f ffmetadata metadata.lrc
+  // 导出歌词 ffmpeg -i "song.flac" -f ffmetadata -y lyrics.lrc
   Future<List<LyricLine>> _extractLyrics(String filePath) async {
     try {
       // 获取可写目录
       final directory = await getTemporaryDirectory();
       final outputFilePath = '${directory.path}/lyrics.lrc';
 
-      final command = FfmpegCommand.simple(
-        inputs: [FfmpegInput.asset('"$filePath"')], // 修正 asset 路径
-        args: [
-          CliArg(name: 'f', value: 'ffmetadata'),
-        ],
-        outputFilepath: outputFilePath, // 使用可写目录
+      await Process.start(
+        'ffmpeg',
+        ['-i', '"$filePath"', '-f', 'ffmetadata', '-y', outputFilePath],
       );
 
-      await Ffmpeg().run(command);
-      debugPrint(command.toCli().toString());
       final lyricsFile = File(outputFilePath);
       if (!await lyricsFile.exists()) {
         throw Exception('歌词文件未生成');
       }
+
       final lyricsData = await lyricsFile.readAsString(encoding: utf8);
-      debugPrint(lyricsData);
       return _parseLrc(lyricsData);
     } catch (e) {
       debugPrint('$e');
