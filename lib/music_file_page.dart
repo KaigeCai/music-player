@@ -313,11 +313,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
 
     final index = _audioFiles.indexOf(filePath);
     final provider = context.read<PlayerProvider>();
-
-    // 加载歌词
-    final lyrics = await _extractLyrics(filePath);
-    if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
-
+    _loadExtractLyrics(filePath);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController?.hasClients ?? false) {
         _pageController?.jumpToPage(index + 1);
@@ -397,9 +393,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _currentFileIndex = _audioFiles.indexOf(previousSong);
       });
       _playAudio(previousSong);
-      // 加载歌词
-      final lyrics = await _extractLyrics(previousSong);
-      if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
+      _loadExtractLyrics(previousSong);
       _pageController?.jumpToPage(_currentFileIndex! + 1); // 🔥 让 PageView 也同步
     }
   }
@@ -414,11 +408,15 @@ class _MusicFilePageState extends State<MusicFilePage> {
         _currentFileIndex = _audioFiles.indexOf(nextSong);
       });
       _playAudio(nextSong);
-      // 加载歌词
-      final lyrics = await _extractLyrics(nextSong);
-      if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
+      _loadExtractLyrics(nextSong);
       _pageController?.jumpToPage(_currentFileIndex! + 1); // 🔥 让 PageView 也同步
     }
+  }
+
+  // 加载提取歌词
+  void _loadExtractLyrics(String filePath) async {
+    final lyrics = await _extractLyrics(filePath);
+    if (mounted) context.read<PlayerProvider>().updateLyrics(lyrics);
   }
 
   // 构建歌曲显示组件
@@ -513,6 +511,11 @@ class _MusicFilePageState extends State<MusicFilePage> {
       });
       _playAudio(_audioFiles[actualIndex]);
     }
+  }
+
+  void _onPageTap(int index) async {
+    if (index < 0 || index >= _audioFiles.length) return; // 避免越界
+    _loadExtractLyrics(_audioFiles[index]);
   }
 
   @override
@@ -748,6 +751,7 @@ class _MusicFilePageState extends State<MusicFilePage> {
                     children: [
                       GestureDetector(
                         onTap: () {
+                          _onPageTap(_currentFileIndex!);
                           playerProvider.setSong(
                             coverImage: song.coverImage,
                             title: song.title!,
