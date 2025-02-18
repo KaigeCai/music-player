@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:audiotags/audiotags.dart';
+import 'package:ffmpeg_kit_flutter_full/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -175,14 +176,9 @@ class _MusicFilePageState extends State<MusicFilePage> {
       final directory = await getTemporaryDirectory();
       final outputFilePath = '${directory.path}/lyrics.lrc';
 
-      await Process.run('ffmpeg', [
-        '-i',
-        '"$filePath"',
-        '-f',
-        'ffmetadata',
-        '-y',
-        outputFilePath,
-      ]);
+      if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+        await FFmpegKit.execute('-i "$filePath" -f ffmetadata -y $outputFilePath');
+      }
 
       final lyricsFile = File(outputFilePath);
       if (!await lyricsFile.exists()) {
